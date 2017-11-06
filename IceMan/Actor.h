@@ -27,6 +27,11 @@ GraphObject
 			OilBarrel
 */
 
+const double SIZE_NORMAL = 1.0;
+
+const double SIZE_SMALL = 0.25;
+
+
 class StudentWorld;
 
 class Point
@@ -175,17 +180,15 @@ public:
 
 	enum States { InOilField, LeaveOilField };
 
-	Protester(int imageID, int startX, int startY, Direction dir,
-			  double size, unsigned int depth, int health, 
-			  bool isDamageable);
+	Protester(int imageID, int health);
 
-		
-	virtual void takeDamage(DamageSource src);
-
+	
 	States getState() const;
-	bool isStunned() const;
+
+	virtual void doSomething();
 
 	virtual void foundGold() = 0;
+	virtual void takeDamage(DamageSource src);
 
 	void toggleStunned();
 
@@ -193,13 +196,18 @@ public:
 
 private:
 		
-	virtual void doSomething()=0;
+	virtual int getGiveUpPoints() = 0;
+	virtual void ProtesterDoSomething() = 0;
 		
+	int m_XStepsInCurrentDir;
+	int m_ticksSinceDirectionChange;
+
 	int m_nonShoutingActions;
 	int m_restingTickCount;
-		
+	int m_stunTicksLeft;
+
 	States m_state;
-	bool m_isStunned;
+
 	bool m_isBribed;
 };
 
@@ -208,13 +216,7 @@ class RegularProtester : public Protester
 public:
 
 	RegularProtester(int imageID = IID_PROTESTER, 
-						int startX = 60, 
-						int startY = 60, 
-						Direction dir = left,
-						double size = 1.0, 
-						unsigned int depth = 0, 
-						int health = 5,
-						bool isDamageable = true);
+					 int health = 5);
 
 	virtual ~RegularProtester();
 
@@ -222,7 +224,9 @@ public:
 
 private:
 
-	virtual void doSomething();
+	virtual int getGiveUpPoints();
+
+	virtual void ProtesterDoSomething();
 };
 
 class HardcoreProtester : public Protester
@@ -230,13 +234,7 @@ class HardcoreProtester : public Protester
 public:
 
 	HardcoreProtester(int imageID = IID_HARD_CORE_PROTESTER, 
-					  int startX = 60,
-					  int startY = 60,
-					  Direction dir = left,
-					  double size = 1.0,
-					  unsigned int depth = 0,
-					  int health = 20,
-					  bool isDamageable = true);
+					  int health = 20);
 
 	virtual ~HardcoreProtester();
 
@@ -244,7 +242,9 @@ public:
 
 private:
 
-	virtual void doSomething();
+	virtual int getGiveUpPoints();
+
+	virtual void ProtesterDoSomething();
 };
 
 

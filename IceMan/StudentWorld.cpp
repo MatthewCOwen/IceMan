@@ -26,6 +26,7 @@ int StudentWorld::init()
 	m_ticksThisSec = 0;
 
 	int curLevel = getLevel();
+	m_worldAge = 0;
 	
 	m_numMaxProtesters = min(15, 2 + (int)(curLevel * 1.5));
 	m_numProtesters = 0;
@@ -33,12 +34,12 @@ int StudentWorld::init()
 	m_minTicksBetweenProtesterSpawn = max(25, 200 - curLevel);
 	m_ticksSinceLastProtesterAdded = 0;
 
-	m_spawnChance = curLevel * 25 + 300;
+	m_itemSpawnChance = curLevel * 25 + 300;
 
 	bool isConflict;
 	int x;
 	int y;
-	
+
 	// Spawn Iceman
 	m_player = new Iceman();
 
@@ -69,7 +70,6 @@ int StudentWorld::init()
 			}
 
 		} while (isConflict);
-
 	}
 
 	// Spawn Oil Barrels
@@ -122,6 +122,9 @@ int StudentWorld::init()
 		} while (isConflict);
 	}
 
+	// Create PathFinder
+	m_path = new PathFinder(this);	
+
 	return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -134,7 +137,8 @@ int StudentWorld::move()
 		m_currTime = t;		
 		
 		system("cls");
-		cout << m_ticksThisSec;
+		cout << m_ticksThisSec << endl;
+		m_path->showPath();
 		
 		m_ticksThisSec = 0;
 	}
@@ -163,7 +167,25 @@ int StudentWorld::move()
 			return GWSTATUS_FINISHED_LEVEL;
 		}
 
-		if (rand() % m_spawnChance == 0)
+		if (m_worldAge == 0 || m_ticksSinceLastProtesterAdded == m_minTicksBetweenProtesterSpawn)
+		{
+			if (rand() % m_chanceHardcore == 0)
+			{
+				m_listActors.push_back(new HardcoreProtester());
+			}
+			else
+			{
+				m_listActors.push_back(new RegularProtester());
+			}
+
+			m_ticksSinceLastProtesterAdded = 0;
+		}
+		else
+		{
+			m_ticksSinceLastProtesterAdded++;
+		}
+
+		if (rand() % m_itemSpawnChance == 0)
 		{
 			spawnGoodie();
 		}
@@ -188,6 +210,8 @@ int StudentWorld::move()
 			}
 		}
 	}
+
+	m_worldAge++;
 	
 	return GWSTATUS_CONTINUE_GAME;
 }
@@ -464,3 +488,45 @@ IceManager::~IceManager()
 
 	delete[] m_arr;
 }
+
+
+// PathFinder
+
+PathFinder::PathFinder(StudentWorld* world) : m_world(world)
+{
+	updatePath();
+}
+
+void PathFinder::updatePath()
+{
+	for (int y = 0; y < 61; y++)
+	{
+		for (int x = 0; x < 61; x++)
+		{
+			if (m_world->getIceManager()->checkIce(x, y))
+			{
+				m_grid[x][63 - y] = 'P';
+			}
+		}
+	}
+}
+
+void PathFinder::showPath()
+{
+	for (int y = 0; y < 64; y++)
+	{
+		for (int x = 0; x < 64; x++)
+		{
+			cout << m_grid[x][y];
+		}
+
+		cout << endl;
+	}
+}
+
+const string PathFinder::getPathFrom(int x, int y)
+{
+
+	return "asdf";
+}
+

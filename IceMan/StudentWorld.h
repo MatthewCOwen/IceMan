@@ -12,25 +12,9 @@
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
 
-// Manages all of the ice objects.
-class IceManager 
-{
-public:
+class IceManager;
 
-	IceManager();
-		
-	Ice*& operator()(int x, int y);
-
-	bool checkIce(int x, int y);
-
-	bool clearIce(int x, int y);
-	
-	~IceManager();
-
-private:
-
-	Ice** m_arr;
-};
+class PathFinder;
 
 
 class StudentWorld : public GameWorld
@@ -77,12 +61,16 @@ private:
 	IceManager* m_ice;
 	Iceman* m_player;
 
+	PathFinder* m_path;
+
 	unsigned int m_currTime;
 	int m_ticksThisSec;
 
 	int m_numOilBarrels;
 
-	int m_spawnChance;
+	int m_itemSpawnChance;
+
+	int m_worldAge;
 
 	int m_numProtesters;
 	int m_numMaxProtesters;
@@ -98,6 +86,49 @@ private:
 
 };
 
+
+// Manages all of the ice objects.
+
+class IceManager
+{
+public:
+
+	IceManager();
+		
+	Ice*& operator()(int x, int y);
+
+	bool checkIce(int x, int y);
+
+	bool clearIce(int x, int y);
+	
+	~IceManager();
+
+private:
+
+	Ice** m_arr;
+};
+
+
+// Calculates path out of oil field.
+
+class PathFinder
+{
+public: 
+
+	PathFinder(StudentWorld* world);
+
+	const std::string getPathFrom(int x, int y);
+
+	void showPath();
+
+	void updatePath();
+
+private:
+
+	StudentWorld* m_world;
+
+	char m_grid[64][64];
+};
 
 
 

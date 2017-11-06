@@ -511,16 +511,45 @@ Iceman::~Iceman()
 
 // Protester
 
-Protester::Protester(int imageID, int startX, int startY, 
-					 Direction dir, double size, 
-					 unsigned int depth, int health,
-					 bool isDamageable) :	Actor(imageID, startX, startY, dir, size, depth, health, isDamageable, true),
-											m_state(InOilField),
-											m_isStunned(false),
-											m_nonShoutingActions(0)
+Protester::Protester(int imageID, int health) :	Actor(imageID, 60, 60, left, SIZE_NORMAL, 0, health, true, true),
+												m_state(InOilField),
+												m_nonShoutingActions(0),
+												m_stunTicksLeft(0),
+												m_ticksSinceDirectionChange(0)
 {
 	setVisible(true);
 	m_restingTickCount = std::max(0, 3 - (int)getWorld()->getLevel() / 4);
+	m_XStepsInCurrentDir = rand() % 53 + 8;
+}
+
+void Protester::doSomething()
+{
+	if (m_state == LeaveOilField)
+	{
+		if (getX() == 60 && getY() == 60)
+		{
+			setDead();
+			return;
+		}
+		else
+		{
+			//move towards (60, 60)
+		}
+	}
+
+	if (getTicksAlive() % m_restingTickCount == 0 && m_stunTicksLeft == 0)
+	{
+
+	}
+	else
+	{
+		if (m_stunTicksLeft > 0)
+		{
+			m_stunTicksLeft--;
+		}
+
+		return;
+	}
 }
 
 Protester::States Protester::getState() const
@@ -528,18 +557,11 @@ Protester::States Protester::getState() const
 	return m_state;
 }
 
-bool Protester::isStunned() const
-{
-	return m_isStunned;
-}
-
 void Protester::toggleStunned()
 {
-	m_isStunned = !m_isStunned;
-
 	int lvl = getWorld()->getLevel();
 
-	m_restingTickCount = m_isStunned ? std::max(50, 100 - lvl * 10) : std::max(0, 3 - lvl / 12);
+	std::max(50, 100 - lvl * 10);
 }
 
 void Protester::takeDamage(DamageSource src)
@@ -556,8 +578,18 @@ void Protester::takeDamage(DamageSource src)
 		}
 		else
 		{
-			world->playSound(SOUND_PROTESTER_ANNOYED);
-			decHealth();
+			decHealth(2);
+
+			if (getHealth() <= 0)
+			{
+				world->playSound(SOUND_PROTESTER_GIVE_UP);
+				m_state = LeaveOilField;
+				world->increaseScore(getGiveUpPoints());
+			}
+			else
+			{
+				world->playSound(SOUND_PROTESTER_ANNOYED);
+			}
 		}
 	}
 }
@@ -570,15 +602,12 @@ Protester::~Protester()
 
 // RegularProtester
 
-RegularProtester::RegularProtester(int imageID, int startX, int startY, 
-								   Direction dir, double size, 
-								   unsigned int depth, int health,
-								   bool isDamageable) : Protester(imageID, startX, startY, dir, size, depth, health, isDamageable)
+RegularProtester::RegularProtester(int imageID, int health) : Protester(imageID, health)
 {
 
 }
 
-void RegularProtester::doSomething()
+void RegularProtester::ProtesterDoSomething()
 {
 
 }
@@ -586,6 +615,11 @@ void RegularProtester::doSomething()
 void RegularProtester::foundGold()
 {
 
+}
+
+int RegularProtester::getGiveUpPoints()
+{
+	return 100;
 }
 
 RegularProtester::~RegularProtester()
@@ -596,15 +630,12 @@ RegularProtester::~RegularProtester()
 
 // HardcoreProtester
 
-HardcoreProtester::HardcoreProtester(int imageID, int startX, int startY,
-									 Direction dir, double size,
-									 unsigned int depth, int health, 
-									 bool isDamageable) : Protester(imageID, startX, startY, dir, size, depth, health, isDamageable)
+HardcoreProtester::HardcoreProtester(int imageID, int health) : Protester(imageID, health)
 {
 
 }
 
-void HardcoreProtester::doSomething()
+void HardcoreProtester::ProtesterDoSomething()
 {
 
 }
@@ -612,6 +643,11 @@ void HardcoreProtester::doSomething()
 void HardcoreProtester::foundGold()
 {
 
+}
+
+int HardcoreProtester::getGiveUpPoints()
+{
+	return 250;
 }
 
 HardcoreProtester::~HardcoreProtester()
@@ -622,7 +658,7 @@ HardcoreProtester::~HardcoreProtester()
 
 // Ice 
 
-Ice::Ice(int startX, int startY) : Actor(IID_ICE, startX, startY, right, 0.25, 3, 1, false, false)
+Ice::Ice(int startX, int startY) : Actor(IID_ICE, startX, startY, right, SIZE_SMALL, 3, 1, false, false)
 {
 	setVisible(true);
 }
@@ -639,7 +675,7 @@ Ice::~Ice()
 
 // Boulder
 
-Boulder::Boulder(int startX, int startY) :	Actor(IID_BOULDER, startX, startY, down, 1.0, 1, 1, false, false),
+Boulder::Boulder(int startX, int startY) :	Actor(IID_BOULDER, startX, startY, down, SIZE_NORMAL, 1, 1, false, false),
 											m_isStable(true),
 											m_isFalling(false)
 {
@@ -694,10 +730,7 @@ void Boulder::doSomething()
 	}
 }
 
-void Boulder::takeDamage(DamageSource src)
-{
-	return;
-}
+void Boulder::takeDamage(DamageSource src) { return; }
 
 Boulder::~Boulder()
 {
@@ -707,7 +740,7 @@ Boulder::~Boulder()
 
 // Squirt
 
-Squirt::Squirt(int startX, int startY, Direction dir) : Actor(IID_WATER_SPURT, startX, startY, dir, 1.0, 1, 1, false, true),
+Squirt::Squirt(int startX, int startY, Direction dir) : Actor(IID_WATER_SPURT, startX, startY, dir, SIZE_NORMAL, 1, 1, false, true),
 														m_movesLeft(4)
 {
 	setVisible(true);
@@ -741,10 +774,7 @@ void Squirt::doSomething()
 	}
 }
 
-void Squirt::takeDamage(DamageSource src)
-{
-	return;
-}
+void Squirt::takeDamage(DamageSource src) { return; }
 
 Squirt::~Squirt()
 {
@@ -814,7 +844,7 @@ int Item::getTempTicksLeft()
 
 // OilBarrel
 
-OilBarrel::OilBarrel(int x, int y) : Item(IID_BARREL, x, y, right, 1.0, 2, Item::States::Permanent)
+OilBarrel::OilBarrel(int x, int y) : Item(IID_BARREL, x, y, right, SIZE_NORMAL, 2, Item::States::Permanent)
 {
 	setVisible(false);
 	setTempLifetime();
@@ -855,7 +885,7 @@ void OilBarrel::ItemDoSomething()
 
 // Gold Nugget
 
-GoldNugget::GoldNugget(int x, int y, Item::States state) :	Item(IID_GOLD, x, y, right, 1.0, 2, state)
+GoldNugget::GoldNugget(int x, int y, Item::States state) :	Item(IID_GOLD, x, y, right, SIZE_NORMAL, 2, state)
 {
 	setVisible(getState() == Permanent ? false : true);
 	setTempLifetime();
@@ -912,7 +942,7 @@ void GoldNugget::ItemDoSomething()
 
 // SonarKit
 
-SonarKit::SonarKit() : Item(IID_SONAR, 0, 60, right, 1.0, 2, Item::States::Temporary)
+SonarKit::SonarKit() : Item(IID_SONAR, 0, 60, right, SIZE_NORMAL, 2, Item::States::Temporary)
 {
 	setVisible(true);
 
@@ -946,7 +976,7 @@ void SonarKit::ItemDoSomething()
 
 // WaterPool
 
-WaterPool::WaterPool(int x, int y) : Item(IID_WATER_POOL, x, y, right, 1.0, 2, Item::States::Temporary)
+WaterPool::WaterPool(int x, int y) : Item(IID_WATER_POOL, x, y, right, SIZE_NORMAL, 2, Item::States::Temporary)
 {
 	setVisible(true);
 
