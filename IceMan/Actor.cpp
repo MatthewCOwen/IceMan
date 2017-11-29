@@ -175,6 +175,78 @@ bool Actor::isPassable() const
 	return m_isPassable;
 }
 
+bool Actor::isFacing(Actor* other) const
+{
+	int deltaX = getX() - other->getX();
+	int deltaY = getY() - other->getY();
+	Direction dir = getDirection();
+
+	if (deltaX >= 0)
+	{
+		if (dir == left)
+		{
+			return true;
+		}
+	}
+	
+	if (deltaX <= 0)
+	{
+		if (dir == right)
+		{
+			return true;
+		}
+	}
+
+	if (deltaY >= 0)
+	{
+		if (dir == up)
+		{
+			return true;
+		}
+	}
+
+	if (deltaY <= 0)
+	{
+		if (dir == down)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void Actor::faceTowards(Actor* other)
+{
+	int deltaX = getX() - other->getX();
+	int deltaY = getY() - other->getY();
+	Direction dir = getDirection();
+
+	if (deltaX >= 0)
+	{
+		setDirection(left);
+		return;
+	}
+	
+	if (deltaX <= 0)
+	{
+		setDirection(right);
+		return;
+	}
+
+	if (deltaY >= 0)
+	{
+		setDirection(up);
+		return;
+	}
+
+	if (deltaY <= 0)
+	{
+		setDirection(down);
+		return;
+	}
+}
+
 int Actor::getHealth() const
 {
 	return m_health;
@@ -274,8 +346,11 @@ void Iceman::doSomething()
 				if (getX() > 0 && canMove)
 				{
 					if (world->getIceManager()->clearIce(getX() - 1, getY()))
+					{
+						world->getPathFinder()->updatePath(getX() - 1, getY(), getDirection());
 						world->playSound(SOUND_DIG);
-					
+					}
+
 					moveTo(getX() - 1, getY());
 				}
 				break;
@@ -315,7 +390,10 @@ void Iceman::doSomething()
 				if (getY() <= 60 && canMove)
 				{
 					if (world->getIceManager()->clearIce(getX(), getY() + 1))
+					{
+						world->getPathFinder()->updatePath(getX(), getY() + 1, getDirection());
 						world->playSound(SOUND_DIG);
+					}
 
 					moveTo(getX(), getY() + 1);
 				}
@@ -356,7 +434,10 @@ void Iceman::doSomething()
 				if (getX() <= 60 && canMove)
 				{
 					if (world->getIceManager()->clearIce(getX() + 1, getY()))
+					{
+						world->getPathFinder()->updatePath(getX() + 1, getY(), getDirection());
 						world->playSound(SOUND_DIG);
+					}
 
 					moveTo(getX() + 1, getY());
 				}
@@ -397,7 +478,10 @@ void Iceman::doSomething()
 				if (getY() > 0 && canMove)
 				{
 					if (world->getIceManager()->clearIce(getX(), getY() - 1))
+					{
+						world->getPathFinder()->updatePath(getX(), getY() - 1, getDirection());
 						world->playSound(SOUND_DIG);
+					}
 
 					moveTo(getX(), getY() - 1);
 				}
@@ -442,6 +526,11 @@ void Iceman::doSomething()
 				}
 				break;
 
+			case KEY_PRESS_ESCAPE:
+				
+				world->hitESC();
+				break;
+
 			case 'Z':
 			case 'z':
 				if (m_numSonarKits > 0)
@@ -450,6 +539,13 @@ void Iceman::doSomething()
 					world->scan(getX() + 1.5, getY() + 1.5);
 					m_numSonarKits--;
 				}
+				break;
+			// For testing purposes
+			case 'R':
+			case 'r':
+
+				world->placePathTester(getX(), getY());
+
 				break;
 			}
 		}
@@ -511,11 +607,12 @@ Iceman::~Iceman()
 
 // Protester
 
-Protester::Protester(int imageID, int health) :	Actor(imageID, 60, 60, left, SIZE_NORMAL, 0, health, true, true),
-												m_state(InOilField),
-												m_nonShoutingActions(0),
-												m_stunTicksLeft(0),
-												m_ticksSinceDirectionChange(0)
+Protester::Protester(int imageID, int health,
+					 int x, int y) :	Actor(imageID, x, y, left, SIZE_NORMAL, 0, health, true, true),
+										m_state(InOilField),
+										m_nonShoutingActions(0),
+										m_stunTicksLeft(0),
+										m_ticksSinceDirectionChange(0)
 {
 	setVisible(true);
 	m_restingTickCount = std::max(0, 3 - (int)getWorld()->getLevel() / 4);
@@ -524,6 +621,8 @@ Protester::Protester(int imageID, int health) :	Actor(imageID, 60, 60, left, SIZ
 
 void Protester::doSomething()
 {
+	StudentWorld* world = getWorld();
+
 	if (m_state == LeaveOilField)
 	{
 		if (getX() == 60 && getY() == 60)
@@ -533,13 +632,82 @@ void Protester::doSomething()
 		}
 		else
 		{
-			//move towards (60, 60)
+			if (!m_pathOut.empty())
+			{
+				char ch = m_pathOut[0];
+
+				switch (ch)
+				{
+				case 'L':
+					moveTo(getX() - 1, getY());
+					break;
+				case 'U':
+					moveTo(getX(), getY() + 1);
+					break;
+				case 'R':
+					moveTo(getX() + 1, getY());
+					break;
+				case 'D':
+					moveTo(getX(), getY() - 1);
+					break;
+				case 'E':
+					setDead();
+					break;
+				}
+
+				Direction dir = getDirection();
+
+				switch (dir)
+				{
+				case left:
+					setDirection(up);
+					break;
+				case up:
+					setDirection(right);
+					break;
+				case right:
+					setDirection(down);
+					break;
+				case down:
+					setDirection(left);
+					break;
+				}
+
+				m_pathOut = m_pathOut.substr(1);
+				return;
+			}
 		}
 	}
 
 	if (getTicksAlive() % m_restingTickCount == 0 && m_stunTicksLeft == 0)
 	{
+		if (m_nonShoutingActions == 15)
+		{
+			BoundingBox BB = BoundingBox(getX() - 1, getY() - 1, 6);
 
+			Actor* collidedWith = world->collisionWith(BB);
+			Iceman* player = world->getPlayer();
+
+			if (*&collidedWith == *&player)
+			{
+				if (isFacing(collidedWith))
+				{
+					world->playSound(SOUND_PROTESTER_YELL);
+					player->takeDamage(DamageSource::protest);
+
+					m_nonShoutingActions = 0;
+				}
+			}
+		}
+		else
+		{
+			m_nonShoutingActions++;
+		}
+
+		if (world->hasLOSToPlayer(this))
+		{
+
+		}
 	}
 	else
 	{
@@ -575,6 +743,8 @@ void Protester::takeDamage(DamageSource src)
 			m_state = LeaveOilField;
 			world->playSound(SOUND_PROTESTER_GIVE_UP);
 			world->increaseScore(500);
+
+			m_pathOut = world->getPathFinder()->getPathFrom(getX(), getY());
 		}
 		else
 		{
@@ -602,19 +772,23 @@ Protester::~Protester()
 
 // RegularProtester
 
-RegularProtester::RegularProtester(int imageID, int health) : Protester(imageID, health)
+RegularProtester::RegularProtester(int x, int y) : Protester(IID_PROTESTER, 5, x, y)
 {
 
 }
 
-void RegularProtester::ProtesterDoSomething()
+void RegularProtester::PathTowardsPlayer()
 {
 
 }
 
 void RegularProtester::foundGold()
 {
+	StudentWorld* world = getWorld();
 
+	world->playSound(SOUND_PROTESTER_FOUND_GOLD);
+
+	
 }
 
 int RegularProtester::getGiveUpPoints()
@@ -630,18 +804,21 @@ RegularProtester::~RegularProtester()
 
 // HardcoreProtester
 
-HardcoreProtester::HardcoreProtester(int imageID, int health) : Protester(imageID, health)
+HardcoreProtester::HardcoreProtester(int x, int y) : Protester(IID_HARD_CORE_PROTESTER, 20, x, y)
 {
 
 }
 
-void HardcoreProtester::ProtesterDoSomething()
+void HardcoreProtester::PathTowardsPlayer()
 {
 
 }
 
 void HardcoreProtester::foundGold()
 {
+	StudentWorld* world = getWorld();
+
+	world->playSound(SOUND_PROTESTER_FOUND_GOLD);
 
 }
 
@@ -698,6 +875,8 @@ void Boulder::doSomething()
 		{
 			world->playSound(SOUND_FALLING_ROCK); 
 			m_isFalling = true;
+
+			world->getPathFinder()->updatePath(getX(), getY(), down);
 		}
 		else
 		{
@@ -931,8 +1110,13 @@ void GoldNugget::ItemDoSomething()
 		{
 			if (collidedWith->isDamageable() && &(*(world->getPlayer())) != &*collidedWith)
 			{
-				dynamic_cast<Protester*>(collidedWith)->foundGold();
-				setDead();
+				Protester* collidedWithProtester = dynamic_cast<Protester*>(collidedWith);
+
+				if (collidedWithProtester->getState() == Protester::States::InOilField)
+				{
+					collidedWithProtester->foundGold();
+					setDead();
+				}
 				return;
 			}
 		}

@@ -16,7 +16,6 @@ class IceManager;
 
 class PathFinder;
 
-
 class StudentWorld : public GameWorld
 {
 public:
@@ -35,6 +34,8 @@ public:
 
  	IceManager* getIceManager();
 
+	PathFinder* getPathFinder();
+
 	Actor* collisionWith(BoundingBox BB);
 
 	Iceman* getPlayer();
@@ -43,9 +44,15 @@ public:
 
 	void acceptActor(Actor* a);
 
+	void placePathTester(int x, int y);
+
+	void hitESC();
+
 	void spawnGoodie();
 
 	bool squirtTargets(BoundingBox BB, Squirt* blackList);
+
+	bool hasLOSToPlayer(Actor* a) const;
 
 	void scan(double x, double y);
 
@@ -77,6 +84,8 @@ private:
 	int m_minTicksBetweenProtesterSpawn;
 	int m_ticksSinceLastProtesterAdded;
 	int m_chanceHardcore;
+
+	bool m_hitESC;
 
 	static StudentWorld* world;
 
@@ -121,9 +130,19 @@ public:
 
 	void showPath();
 
-	void updatePath();
+	void updatePath(int x, int y, GraphObject::Direction dir);
+
+	bool isValidPath(int x, int y);
+
+	void fixIssues(int x, int y);
+
+	void getClosestPath(int &x, int &y);
+
+	GraphObject::Direction getValidDirection(int x, int y);
 
 private:
+
+	int getNonPathCharCount(int x, int y);
 
 	StudentWorld* m_world;
 

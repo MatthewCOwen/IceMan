@@ -2,6 +2,7 @@
 #define ACTOR_H_
 
 #include "GraphObject.h"
+#include <string>
 
 // Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
 
@@ -94,6 +95,9 @@ public:
 		  double size, unsigned int depth, int health,
 		  bool isDamageable, bool isPassable);
 
+	bool isFacing(Actor* other) const;
+
+	void faceTowards(Actor* other);
 		
 	virtual void move();
 	virtual void takeDamage(DamageSource src) = 0;
@@ -180,7 +184,7 @@ public:
 
 	enum States { InOilField, LeaveOilField };
 
-	Protester(int imageID, int health);
+	Protester(int imageID, int health, int x, int y);
 
 	
 	States getState() const;
@@ -206,6 +210,8 @@ private:
 	int m_restingTickCount;
 	int m_stunTicksLeft;
 
+	std::string m_pathOut;
+
 	States m_state;
 
 	bool m_isBribed;
@@ -215,36 +221,34 @@ class RegularProtester : public Protester
 {
 public:
 
-	RegularProtester(int imageID = IID_PROTESTER, 
-					 int health = 5);
+	RegularProtester(int x = 60, int y = 60);
 
 	virtual ~RegularProtester();
-
-	virtual void foundGold();
 
 private:
 
 	virtual int getGiveUpPoints();
 
-	virtual void ProtesterDoSomething();
+	virtual void PathTowardsPlayer();
+
+	virtual void foundGold();
 };
 
 class HardcoreProtester : public Protester
 {
 public:
 
-	HardcoreProtester(int imageID = IID_HARD_CORE_PROTESTER, 
-					  int health = 20);
+	HardcoreProtester(int x = 60, int y = 60);
 
 	virtual ~HardcoreProtester();
-
-	virtual void foundGold();
 
 private:
 
 	virtual int getGiveUpPoints();
 
-	virtual void ProtesterDoSomething();
+	virtual void PathTowardsPlayer();
+
+	virtual void foundGold();
 };
 
 
