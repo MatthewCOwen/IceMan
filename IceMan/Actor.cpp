@@ -6,17 +6,22 @@
 
 // Point 
 
-Point::Point(int x1, int y1) : m_x(x1), m_y(y1) 
+Point::Point(int x, int y) : m_x(x), m_y(y) 
 {
 
 }
 
-int Point::getX()
+Point::Point(const Point& p) : m_x(p.m_x), m_y(p.m_y)
+{
+
+}
+
+int Point::getX() const
 {
 	return m_x;
 }
 
-int Point::getY()
+int Point::getY() const
 {
 	return m_y;
 }
@@ -38,7 +43,31 @@ bool Point::operator!=(Point& p)
 {
 	return !(*this == p);
 }
-	
+
+bool Point::isValid() const
+{
+	return m_x != -1 && m_y != -1;
+}
+
+Point Point::getAdjLeft() const
+{
+	return m_x > 0 ? Point(m_x - 1, m_y) : Point(-1, -1);
+}
+
+Point Point::getAdjUp() const
+{
+	return m_y < 63 ? Point(m_x, m_y + 1) : Point(-1, -1);
+}
+
+Point Point::getAdjRight() const
+{
+	return m_x < 63 ? Point(m_x + 1, m_y) : Point(-1, -1);
+}
+
+Point Point::getAdjDown() const
+{
+	return m_y > 0 ? Point(m_x, m_y - 1) : Point(-1, -1);
+}
 
 // BoundingBox
 
@@ -347,7 +376,7 @@ void Iceman::doSomething()
 				{
 					if (world->getIceManager()->clearIce(getX() - 1, getY()))
 					{
-						world->getPathFinder()->updatePath(getX() - 1, getY(), getDirection());
+						world->getPathFinder()->updateGrid(getX(), getY());
 						world->playSound(SOUND_DIG);
 					}
 
@@ -391,7 +420,7 @@ void Iceman::doSomething()
 				{
 					if (world->getIceManager()->clearIce(getX(), getY() + 1))
 					{
-						world->getPathFinder()->updatePath(getX(), getY() + 1, getDirection());
+						world->getPathFinder()->updateGrid(getX(), getY());
 						world->playSound(SOUND_DIG);
 					}
 
@@ -435,7 +464,7 @@ void Iceman::doSomething()
 				{
 					if (world->getIceManager()->clearIce(getX() + 1, getY()))
 					{
-						world->getPathFinder()->updatePath(getX() + 1, getY(), getDirection());
+						world->getPathFinder()->updateGrid(getX(), getY());
 						world->playSound(SOUND_DIG);
 					}
 
@@ -479,7 +508,7 @@ void Iceman::doSomething()
 				{
 					if (world->getIceManager()->clearIce(getX(), getY() - 1))
 					{
-						world->getPathFinder()->updatePath(getX(), getY() - 1, getDirection());
+						world->getPathFinder()->updateGrid(getX(), getY());
 						world->playSound(SOUND_DIG);
 					}
 
@@ -544,6 +573,7 @@ void Iceman::doSomething()
 			case 'R':
 			case 'r':
 
+				//world->getPathFinder()->buildPaths();
 				world->placePathTester(getX(), getY());
 
 				break;
@@ -743,8 +773,6 @@ void Protester::takeDamage(DamageSource src)
 			m_state = LeaveOilField;
 			world->playSound(SOUND_PROTESTER_GIVE_UP);
 			world->increaseScore(500);
-
-			m_pathOut = world->getPathFinder()->getPathFrom(getX(), getY());
 		}
 		else
 		{
@@ -760,6 +788,12 @@ void Protester::takeDamage(DamageSource src)
 			{
 				world->playSound(SOUND_PROTESTER_ANNOYED);
 			}
+		}
+
+		if (m_state == LeaveOilField)
+		{
+			world->getPathFinder()->buildPaths();
+			m_pathOut = world->getPathFinder()->getPathFrom(getX(), getY());
 		}
 	}
 }
@@ -876,7 +910,7 @@ void Boulder::doSomething()
 			world->playSound(SOUND_FALLING_ROCK); 
 			m_isFalling = true;
 
-			world->getPathFinder()->updatePath(getX(), getY(), down);
+			world->getPathFinder()->updateGrid(getX(), getY());
 		}
 		else
 		{

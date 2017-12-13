@@ -130,19 +130,19 @@ public:
 
 	void showPath();
 
-	void updatePath(int x, int y, GraphObject::Direction dir);
+	void updateGrid(int x, int y);
+
+	void buildPaths();
 
 	bool isValidPath(int x, int y);
 
-	void fixIssues(int x, int y);
+	Point* getValidAdjPoints(const Point& p);
 
 	void getClosestPath(int &x, int &y);
 
 	GraphObject::Direction getValidDirection(int x, int y);
 
 private:
-
-	int getNonPathCharCount(int x, int y);
 
 	StudentWorld* m_world;
 

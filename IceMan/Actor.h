@@ -39,17 +39,29 @@ class Point
 {
 public:
 
-	Point(int x = 0, int y = 0);
+	Point(int x = -1, int y = -1);
 
-	int getX();
+	Point(const Point& p);
 
-	int getY();
-	
+	int getX() const;
+
+	int getY() const;
+
+	Point getAdjLeft() const;
+
+	Point getAdjUp() const;
+
+	Point getAdjRight() const;
+
+	Point getAdjDown() const;
+
 	Point& operator=(Point& p);
 
 	bool operator==(Point& p);
 
 	bool operator!=(Point& p);
+	
+	bool isValid() const;
 
 private:
 
@@ -201,7 +213,7 @@ public:
 private:
 		
 	virtual int getGiveUpPoints() = 0;
-	virtual void ProtesterDoSomething() = 0;
+	//virtual void ProtesterDoSomething() = 0;
 		
 	int m_XStepsInCurrentDir;
 	int m_ticksSinceDirectionChange;

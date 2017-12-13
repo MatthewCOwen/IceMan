@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <queue>
 #include <ctype.h>
 
 using namespace std;
@@ -50,6 +51,9 @@ int StudentWorld::init()
 	// Spawn Ice
 	m_ice = new IceManager();
 
+	// Create PathFinder
+	m_path = new PathFinder(this);
+
 	// Spawn Boulders
 	int numBoulders = min(curLevel / 2 + 2, 9);
 		
@@ -72,6 +76,7 @@ int StudentWorld::init()
 			{
 				m_listActors.push_back(new Boulder(x, y));
 				m_ice->clearIce(x, y);
+				
 			}
 
 		} while (isTooClose || isBlockingShaft);
@@ -128,7 +133,7 @@ int StudentWorld::init()
 	}
 
 	// Create PathFinder
-	m_path = new PathFinder(this);	
+		
 
 	return GWSTATUS_CONTINUE_GAME;
 }
@@ -381,6 +386,18 @@ bool StudentWorld::hasLOSToPlayer(Actor* a) const
 		}
 	}
 
+	if (hasLOS)
+	{
+		for (size_t i = 0; i < m_listActors.size(); i++)
+		{
+			if (!m_listActors[i]->isDamageable() && !m_listActors[i]->isPassable())
+			{
+
+			}
+		}
+	}
+
+
 	return hasLOS;
 }
 
@@ -546,150 +563,134 @@ IceManager::~IceManager()
 PathFinder::PathFinder(StudentWorld* world) : m_world(world)
 {
 	for (int y = 0; y < 64; y++)
+	{
 		for (int x = 0; x < 64; x++)
-			m_grid[x][y] = '_';
-
-	for (int y = 4; y < 61; y++)
-	{
-		for (int Y = y; Y < y + 4; Y++)
 		{
-			for (int x = 30; x < 34; x++)
+			if (m_world->getIceManager()->checkIce(x, y))
 			{
-				m_grid[x][63 - Y] = '.';
-			}
-		}
-
-		m_grid[30][63 - y] = 'U';
-	}
-
-	for (int x = 0; x < 61; x++)
-	{
-		for (int y = 60; y < 64; y++)
-		{
-			for (int X = x; X < x + 4; X++)
-			{
-				m_grid[X][63 - y] = '.';
-			}
-		}
-		
-		m_grid[x][63 - 60] = 'R';
-	}
-
-	m_grid[60][63 - 60] = 'E';
-}
-
-void PathFinder::updatePath(int x, int y, GraphObject::Direction dir)
-{
-	for (int Y = y; Y < y + 4; Y++)
-	{
-		for (int X = x; X < x + 4; X++)
-		{
-			if (!isalpha(m_grid[X][63 - Y]))
-			{
-				m_grid[X][63 - Y] = '.';
-			}
-		}
-	}
-
-	if (dir != GraphObject::Direction::none)
-	{
-		switch (dir)
-		{
-		case GraphObject::Direction::left:
-			m_grid[x][63 - y] = 'R';
-			break;
-		case GraphObject::Direction::up:
-			m_grid[x][63 - y] = 'D';
-			break;
-		case GraphObject::Direction::right:
-			m_grid[x][63 - y] = 'L';
-			break;
-		case GraphObject::Direction::down:
-			m_grid[x][63 - y] = 'U';
-			break;
-		}
-
-		fixIssues(x, y);
-	}
-}
-
-void PathFinder::fixIssues(int x, int y)
-{
-	if (!isValidPath(x, y))
-	{
-		if (isValidPath(x - 1, y))
-		{
-			m_grid[x][63 - y] = 'L';
-		}
-		else if (isValidPath(x, y + 1))
-		{
-			m_grid[x][63 - y] = 'U';
-		}
-		else if (isValidPath(x + 1, y))
-		{
-			m_grid[x][63 - y] = 'R';
-		}
-		else if (isValidPath(x, y - 1))
-		{
-			m_grid[x][63 - y] = 'D';
-		}
-		else
-		{
-			if (getNonPathCharCount(x, y) > 6)
-			{
-				GraphObject::Direction dir = getValidDirection(x, y);
-
-				int x_increase = (dir == GraphObject::Direction::left || 
-									dir == GraphObject::Direction::right ? (dir == GraphObject::Direction::left ? -1 : 1) : 0);
-				int y_increase = (dir == GraphObject::Direction::down || 
-									dir == GraphObject::Direction::up ? (dir == GraphObject::Direction::down ? -1 : 1) : 0);
-				char ch;
-
-				switch (dir)
-				{
-				case GraphObject::Direction::left:
-					ch = 'L';
-					break;
-				case GraphObject::Direction::up:
-					ch = 'U';
-					break;
-				case GraphObject::Direction::right:
-					ch = 'R';
-					break;
-				case GraphObject::Direction::down:
-					ch = 'D';
-					break;
-				}
-
-				do
-				{
-					m_grid[x][63 - y] = ch;
-						
-					x += x_increase;
-					y += y_increase;
-						
-				} while (!isalpha(m_grid[x][63 - y]));
+				m_grid[x][63 - y] = '#';
 			}
 			else
 			{
-				switch (m_grid[x][63 - y])
-				{
-				case 'L':
-					fixIssues(x - 1, y);
-					break;
-				case 'U':
-					fixIssues(x, y + 1);
-					break;
-				case 'R':
-					fixIssues(x + 1, y);
-					break;
-				case 'D':
-					fixIssues(x, y - 1);
-					break;
-				}
+				m_grid[x][63 - y] = ' ';
 			}
 		}
 	}
+
+	int x = 60;
+	int y = 60;
+
+	m_grid[60][63 - y] = 'E';
+}
+
+void PathFinder::updateGrid(int x, int y)
+{
+	for (int y = 0; y < 64; y++)
+	{
+		for (int x = 0; x < 64; x++)
+		{
+			if (m_world->getIceManager()->checkIce(x, y) && !isalpha(m_grid[x][63 - y]))
+			{
+				m_grid[x][63 - y] = '#';
+			}
+		}
+	}
+}
+
+void PathFinder::buildPaths()
+{
+	for (int x = 0; x < 64; x++)
+	{
+		for (int y = 0; y < 64; y++)
+		{
+			if (isalpha(m_grid[x][63 - y]))
+			{
+				m_grid[x][63 - y] = '#';
+			}
+		}
+	}
+
+
+	int x = 60;
+	int y = 60;
+
+	m_grid[x][63 - y] = 'E';
+
+	queue<Point> q;
+
+	// start from the exit point for protesters
+	Point start = Point(60, 60);
+	
+	q.push(start);
+
+	while (!q.empty())
+	{
+		Point current = q.front();
+		q.pop();
+
+		Point* adjPoints = getValidAdjPoints(current);
+
+		if (adjPoints[GraphObject::Direction::left].isValid())
+		{
+			m_grid[adjPoints[GraphObject::Direction::left].getX()][63 - adjPoints[GraphObject::Direction::left].getY()] = 'R';
+			q.push(adjPoints[GraphObject::Direction::left]);
+		}
+
+		if (adjPoints[GraphObject::Direction::up].isValid())
+		{
+			m_grid[adjPoints[GraphObject::Direction::up].getX()][63 - adjPoints[GraphObject::Direction::up].getY()] = 'D';
+			q.push(adjPoints[GraphObject::Direction::up]);
+		}
+
+		if (adjPoints[GraphObject::Direction::right].isValid())
+		{
+			m_grid[adjPoints[GraphObject::Direction::right].getX()][63 - adjPoints[GraphObject::Direction::right].getY()] = 'L';
+			q.push(adjPoints[GraphObject::Direction::right]);
+		}
+
+		if (adjPoints[GraphObject::Direction::down].isValid())
+		{
+			m_grid[adjPoints[GraphObject::Direction::down].getX()][63 - adjPoints[GraphObject::Direction::down].getY()] = 'U';
+			q.push(adjPoints[GraphObject::Direction::down]);
+		}		
+	}
+}
+
+Point* PathFinder::getValidAdjPoints(const Point& p)
+{
+	Point* adjPoints = new Point[5];
+
+	Point temp;
+	
+	temp = p.getAdjLeft();
+
+	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	{
+		adjPoints[GraphObject::Direction::left] = temp;
+	}
+
+	temp = p.getAdjUp();
+	
+	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	{
+		adjPoints[GraphObject::Direction::up] = temp;
+	}
+
+	temp = p.getAdjRight();
+
+	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	{
+		adjPoints[GraphObject::Direction::right] = temp;
+	}
+
+	temp = p.getAdjDown();
+
+	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	{
+		adjPoints[GraphObject::Direction::down] = temp;
+	}
+
+	return adjPoints;
 }
 
 bool PathFinder::isValidPath(int x, int y)
@@ -717,25 +718,6 @@ bool PathFinder::isValidPath(int x, int y)
 	}
 }
 
-int PathFinder::getNonPathCharCount(int x, int y)
-{
-	int count = 0;
-	int startX = x > 0 ? x - 1 : x;
-	int startY = y > 0 ? y - 1 : y;
-
-	for (int j = startY; j < y + 2; j++)
-	{
-		for (int i = startX; i < x + 2; i++)
-		{
-			if (!isalpha(m_grid[i][63 - j]))
-			{
-				count++;
-			}
-		}
-	}
-
-	return count - 1;
-}
 
 void PathFinder::showPath()
 {
