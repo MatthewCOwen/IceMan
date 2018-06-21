@@ -65,12 +65,15 @@ public:
 private:
 
 	std::vector<Actor*> m_listActors;
+
 	IceManager* m_ice;
+
 	Iceman* m_player;
 
 	PathFinder* m_path;
 
 	unsigned int m_currTime;
+
 	int m_ticksThisSec;
 
 	int m_numOilBarrels;
@@ -80,9 +83,13 @@ private:
 	int m_worldAge;
 
 	int m_numProtesters;
+
 	int m_numMaxProtesters;
+	
 	int m_minTicksBetweenProtesterSpawn;
+	
 	int m_ticksSinceLastProtesterAdded;
+	
 	int m_chanceHardcore;
 
 	bool m_hitESC;
@@ -90,9 +97,6 @@ private:
 	static StudentWorld* world;
 
 	bool isValidSpawnLocation(int x, int y);
-
-	
-
 };
 
 
@@ -126,27 +130,31 @@ public:
 
 	PathFinder(StudentWorld* world);
 
-	const std::string getPathFrom(int x, int y);
+	const std::string getPathToExitFrom(int x, int y);
+
+	const std::string getPathToPlayerFrom(int x, int y);
 
 	void showPath();
 
-	void updateGrid(int x, int y);
+	void updateGrid();
 
-	void buildPaths();
+	bool isValidLocation(int x, int y);
 
-	bool isValidPath(int x, int y);
-
-	Point* getValidAdjPoints(const Point& p);
-
-	void getClosestPath(int &x, int &y);
-
-	GraphObject::Direction getValidDirection(int x, int y);
+	bool m_needsUpdating;
 
 private:
-
+	
+	Point* getValidAdjPoints(const Point p, bool isPathingOut = true);
+	
 	StudentWorld* m_world;
+	
+	void buildPathToExit();
 
-	char m_grid[64][64];
+	void buildPathToPlayer();
+
+	char m_pathToExit[64][64];
+
+	char m_pathToPlayer[64][64];
 };
 
 

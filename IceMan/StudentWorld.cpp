@@ -148,7 +148,7 @@ int StudentWorld::move()
 		
 		system("cls");
 		cout << m_ticksThisSec << endl;
-		m_path->showPath();
+		//m_path->showPath();
 		
 		m_ticksThisSec = 0;
 	}
@@ -560,7 +560,7 @@ IceManager::~IceManager()
 
 // PathFinder
 
-PathFinder::PathFinder(StudentWorld* world) : m_world(world)
+PathFinder::PathFinder(StudentWorld* world) : m_world(world), m_needsUpdating(true)
 {
 	for (int y = 0; y < 64; y++)
 	{
@@ -568,11 +568,11 @@ PathFinder::PathFinder(StudentWorld* world) : m_world(world)
 		{
 			if (m_world->getIceManager()->checkIce(x, y))
 			{
-				m_grid[x][63 - y] = '#';
+				m_pathToExit[x][63 - y] = '#';
 			}
 			else
 			{
-				m_grid[x][63 - y] = ' ';
+				m_pathToExit[x][63 - y] = ' ';
 			}
 		}
 	}
@@ -580,47 +580,45 @@ PathFinder::PathFinder(StudentWorld* world) : m_world(world)
 	int x = 60;
 	int y = 60;
 
-	m_grid[60][63 - y] = 'E';
+	m_pathToExit[60][63 - y] = 'E';
 }
 
-void PathFinder::updateGrid(int x, int y)
-{
-	for (int y = 0; y < 64; y++)
-	{
-		for (int x = 0; x < 64; x++)
-		{
-			if (m_world->getIceManager()->checkIce(x, y) && !isalpha(m_grid[x][63 - y]))
-			{
-				m_grid[x][63 - y] = '#';
-			}
-		}
-	}
-}
-
-void PathFinder::buildPaths()
+void PathFinder::updateGrid()
 {
 	for (int x = 0; x < 64; x++)
 	{
 		for (int y = 0; y < 64; y++)
 		{
-			if (isalpha(m_grid[x][63 - y]))
+			if (m_world->getIceManager()->checkIce(x, y) && !isalpha(m_pathToExit[x][63 - y]))
 			{
-				m_grid[x][63 - y] = '#';
+				m_pathToExit[x][63 - y] = '#';
+				m_needsUpdating = true;
+			}
+		}
+	}
+}
+
+void PathFinder::buildPathToExit()
+{
+	for (int x = 0; x < 64; x++)
+	{
+		for (int y = 0; y < 64; y++)
+		{
+			if (isalpha(m_pathToExit[x][63 - y]))
+			{
+				m_pathToExit[x][63 - y] = '#';
 			}
 		}
 	}
 
-
-	int x = 60;
-	int y = 60;
-
-	m_grid[x][63 - y] = 'E';
-
 	queue<Point> q;
+	Point* adjPoints;
 
 	// start from the exit point for protesters
 	Point start = Point(60, 60);
 	
+	m_pathToExit[start.getX()][63 - start.getY()] = 'E';
+
 	q.push(start);
 
 	while (!q.empty())
@@ -628,36 +626,114 @@ void PathFinder::buildPaths()
 		Point current = q.front();
 		q.pop();
 
-		Point* adjPoints = getValidAdjPoints(current);
+		adjPoints = getValidAdjPoints(current);
 
 		if (adjPoints[GraphObject::Direction::left].isValid())
 		{
-			m_grid[adjPoints[GraphObject::Direction::left].getX()][63 - adjPoints[GraphObject::Direction::left].getY()] = 'R';
+			m_pathToExit[adjPoints[GraphObject::Direction::left].getX()][63 - adjPoints[GraphObject::Direction::left].getY()] = 'R';
 			q.push(adjPoints[GraphObject::Direction::left]);
 		}
 
 		if (adjPoints[GraphObject::Direction::up].isValid())
 		{
-			m_grid[adjPoints[GraphObject::Direction::up].getX()][63 - adjPoints[GraphObject::Direction::up].getY()] = 'D';
+			m_pathToExit[adjPoints[GraphObject::Direction::up].getX()][63 - adjPoints[GraphObject::Direction::up].getY()] = 'D';
 			q.push(adjPoints[GraphObject::Direction::up]);
 		}
 
 		if (adjPoints[GraphObject::Direction::right].isValid())
 		{
-			m_grid[adjPoints[GraphObject::Direction::right].getX()][63 - adjPoints[GraphObject::Direction::right].getY()] = 'L';
+			m_pathToExit[adjPoints[GraphObject::Direction::right].getX()][63 - adjPoints[GraphObject::Direction::right].getY()] = 'L';
 			q.push(adjPoints[GraphObject::Direction::right]);
 		}
 
 		if (adjPoints[GraphObject::Direction::down].isValid())
 		{
-			m_grid[adjPoints[GraphObject::Direction::down].getX()][63 - adjPoints[GraphObject::Direction::down].getY()] = 'U';
+			m_pathToExit[adjPoints[GraphObject::Direction::down].getX()][63 - adjPoints[GraphObject::Direction::down].getY()] = 'U';
 			q.push(adjPoints[GraphObject::Direction::down]);
-		}		
+		}
 	}
+
+	m_needsUpdating = false;
+
+	delete[] adjPoints;
 }
 
-Point* PathFinder::getValidAdjPoints(const Point& p)
+void PathFinder::buildPathToPlayer()
 {
+	for (int x = 0; x < 64; x++)
+	{
+		for (int y = 0; y < 64; y++)
+		{
+			m_pathToPlayer[x][63 - y] = m_pathToExit[x][y] != ' ' ? '#' : ' ';
+		}
+	}
+
+	int x = m_world->getPlayer()->getX();
+	int y = m_world->getPlayer()->getY();
+
+	queue<Point> q;
+
+	// start at the player and build outwards
+	
+	m_pathToPlayer[x][63 - y] = 'P';
+
+	Point player = Point(x, y);
+
+	q.push(player);
+
+	Point* adjPoints;
+
+	while (!q.empty())
+	{
+		Point current = q.front();
+		q.pop();
+
+		adjPoints = getValidAdjPoints(current, false);
+
+		if (adjPoints[GraphObject::Direction::left].isValid())
+		{
+			m_pathToPlayer[adjPoints[GraphObject::Direction::left].getX()][63 - adjPoints[GraphObject::Direction::left].getY()] = 'R';
+			q.push(adjPoints[GraphObject::Direction::left]);
+		}
+
+		if (adjPoints[GraphObject::Direction::up].isValid())
+		{
+			m_pathToPlayer[adjPoints[GraphObject::Direction::up].getX()][63 - adjPoints[GraphObject::Direction::up].getY()] = 'D';
+			q.push(adjPoints[GraphObject::Direction::up]);
+		}
+
+		if (adjPoints[GraphObject::Direction::right].isValid())
+		{
+			m_pathToPlayer[adjPoints[GraphObject::Direction::right].getX()][63 - adjPoints[GraphObject::Direction::right].getY()] = 'L';
+			q.push(adjPoints[GraphObject::Direction::right]);
+		}
+
+		if (adjPoints[GraphObject::Direction::down].isValid())
+		{
+			m_pathToPlayer[adjPoints[GraphObject::Direction::down].getX()][63 - adjPoints[GraphObject::Direction::down].getY()] = 'U';
+			q.push(adjPoints[GraphObject::Direction::down]);
+		}
+	}
+
+	delete[] adjPoints;
+}
+
+Point* PathFinder::getValidAdjPoints(const Point p, bool isPathingOut)
+{
+	// array is of size 5 because I chose to use literal enum 
+	// values in order to determine the direction the path
+	// needs to follow.
+
+	char m_grid[64][64];
+
+	for (int x = 0; x < 64; x++)
+	{
+		for (int y = 0; y < 64; y++)
+		{
+			m_grid[x][y] = isPathingOut ? m_pathToExit[x][y] : m_pathToPlayer[x][y];
+		}
+	}
+
 	Point* adjPoints = new Point[5];
 
 	Point temp;
@@ -693,32 +769,6 @@ Point* PathFinder::getValidAdjPoints(const Point& p)
 	return adjPoints;
 }
 
-bool PathFinder::isValidPath(int x, int y)
-{
-	switch (m_grid[x][63 - y])
-	{
-	case 'U':
-		return isValidPath(x, ++y);
-		break;
-	case 'R':
-		return isValidPath(++x, y);
-		break;
-	case 'D':
-		return isValidPath(x, --y);
-		break;
-	case 'L':
-		return isValidPath(--x, y);
-		break;
-	case 'E':
-		return true;
-		break;
-	default:
-		return false;
-		break;
-	}
-}
-
-
 void PathFinder::showPath()
 {
 	cout << '\t';
@@ -744,121 +794,73 @@ void PathFinder::showPath()
 
 		for (int x = 0; x < 64; x++)
 		{
-			cout << m_grid[x][y];
+			cout << m_pathToExit[x][y];
 		}
 
 		cout << endl;
 	}
 }
 
-void PathFinder::getClosestPath(int& x, int& y)
+bool PathFinder::isValidLocation(int x, int y)
 {
-	if (!isValidPath(x, y))
-	{
-		for (int Y = y; Y < y + 4; Y++)
-		{
-			for (int X = x; X < x + 4; X++)
-			{
-				if (isValidPath(X, Y))
-				{
-					x = X;
-					y = Y;
-					return;
-				}
-			}
-		}
-	}
+	return m_pathToExit[x][63 - y] != ' ';
 }
 
-GraphObject::Direction PathFinder::getValidDirection(int x, int y)
+const string PathFinder::getPathToPlayerFrom(int x, int y)
 {
-	int X = x;
-	int Y = y;
-
-	do
-	{
-		if (isalpha(m_grid[--X][63 - y]))
-		{
-			return GraphObject::Direction::left;
-		}
-	} while (X > 0 && m_grid[X][63 - Y] != '_');
-
-	X = x;
-
-	do
-	{
-		if (isalpha(m_grid[X][63 - ++y]))
-		{
-			return GraphObject::Direction::up;
-		}
-	} while (Y < 63 && m_grid[X][63 - Y] != '_');
-
-	Y = y;
-
-	do
-	{
-		if (isalpha(m_grid[++X][63 - Y]))
-		{
-			return GraphObject::Direction::right;
-		}
-	} while (X < 63 && m_grid[X][63 - Y] != '_');
-
-	X = x;
-
-	do
-	{
-		if (isalpha(m_grid[X][63 - --Y]))
-		{
-			return GraphObject::Direction::down;
-		}
-	} while (Y > 0 && m_grid[X][63 - Y] != '_');
-
-	return GraphObject::Direction::none;
-}
-
-const string PathFinder::getPathFrom(int x, int y)
-{
-	int X = x;
-	int Y = y;
-
-	getClosestPath(X, Y);
+	buildPathToPlayer();
 
 	ostringstream oss;
 
-	if (X != x)
+	do
 	{
-		for (int i = 0; i < X - x; i++)
+		switch (m_pathToPlayer[x][63 - y])
 		{
-			oss << 'R';
+		case 'L':
+			oss << m_pathToPlayer[x--][63 - y];
+			break;
+		case 'U':
+			oss << m_pathToPlayer[x][63 - y++];
+			break;
+		case 'R':
+			oss << m_pathToPlayer[x++][63 - y];
+			break;
+		case 'D':
+			oss << m_pathToPlayer[x][63 - y--];
+			break;
 		}
+	} while (m_pathToPlayer[x][63 - y] != 'P');
+
+	return oss.str();
+}
+
+const string PathFinder::getPathToExitFrom(int x, int y)
+{
+	if (m_needsUpdating)
+	{
+		buildPathToExit();
 	}
 
-	if (Y != y)
-	{
-		for (int i = 0; i < Y - y; i++)
-		{
-			oss << 'U';
-		}
-	}
+	ostringstream oss;
 
 	do
 	{
-		switch (m_grid[X][63 - Y])
+		switch (m_pathToExit[x][63 - y])
 		{
 		case 'L':
-			oss << m_grid[X--][63 - Y];
+			oss << m_pathToExit[x--][63 - y];
 			break;
 		case 'U':
-			oss << m_grid[X][63 - Y++];
+			oss << m_pathToExit[x][63 - y++];
 			break;
 		case 'R':
-			oss << m_grid[X++][63 - Y];
+			oss << m_pathToExit[x++][63 - y];
 			break;
 		case 'D':
-			oss << m_grid[X][63 - Y--];
+			oss << m_pathToExit[x][63 - y--];
 			break;
 		}
-	} while (m_grid[X][63 - Y] != 'E');
+	} while (m_pathToExit[x][63 - y] != 'E');
 
 	return oss.str();
 }

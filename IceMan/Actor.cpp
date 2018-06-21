@@ -1,10 +1,13 @@
 #include "Actor.h"
 #include "StudentWorld.h"
 #include <algorithm>
+#include <string>
 
 // Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
 
 // Point 
+
+using namespace std;
 
 Point::Point(int x, int y) : m_x(x), m_y(y) 
 {
@@ -376,7 +379,7 @@ void Iceman::doSomething()
 				{
 					if (world->getIceManager()->clearIce(getX() - 1, getY()))
 					{
-						world->getPathFinder()->updateGrid(getX(), getY());
+						world->getPathFinder()->updateGrid();
 						world->playSound(SOUND_DIG);
 					}
 
@@ -416,11 +419,11 @@ void Iceman::doSomething()
 					}
 				}
 				
-				if (getY() <= 60 && canMove)
+				if (getY() < 60 && canMove)
 				{
 					if (world->getIceManager()->clearIce(getX(), getY() + 1))
 					{
-						world->getPathFinder()->updateGrid(getX(), getY());
+						world->getPathFinder()->updateGrid();
 						world->playSound(SOUND_DIG);
 					}
 
@@ -464,7 +467,7 @@ void Iceman::doSomething()
 				{
 					if (world->getIceManager()->clearIce(getX() + 1, getY()))
 					{
-						world->getPathFinder()->updateGrid(getX(), getY());
+						world->getPathFinder()->updateGrid();
 						world->playSound(SOUND_DIG);
 					}
 
@@ -508,7 +511,7 @@ void Iceman::doSomething()
 				{
 					if (world->getIceManager()->clearIce(getX(), getY() - 1))
 					{
-						world->getPathFinder()->updateGrid(getX(), getY());
+						world->getPathFinder()->updateGrid();
 						world->playSound(SOUND_DIG);
 					}
 
@@ -591,7 +594,7 @@ void Iceman::takeDamage(DamageSource src)
 {
 	if (src == protest)
 	{
-
+		decHealth(2);
 	}
 	else if (src == rockFall)
 	{
@@ -664,6 +667,13 @@ void Protester::doSomething()
 		{
 			if (!m_pathOut.empty())
 			{
+				string temp_path = world->getPathFinder()->getPathToExitFrom(getX(), getY());
+
+				if (temp_path.length() < m_pathOut.length())
+				{
+					m_pathOut = temp_path;
+				}
+
 				char ch = m_pathOut[0];
 
 				switch (ch)
@@ -685,6 +695,10 @@ void Protester::doSomething()
 					break;
 				}
 
+			// Code to make the protester spin around as they exit the oil 
+			// field. Because why not?
+			 
+			/*
 				Direction dir = getDirection();
 
 				switch (dir)
@@ -702,6 +716,8 @@ void Protester::doSomething()
 					setDirection(left);
 					break;
 				}
+			*/
+
 
 				m_pathOut = m_pathOut.substr(1);
 				return;
@@ -713,6 +729,12 @@ void Protester::doSomething()
 	{
 		if (m_nonShoutingActions == 15)
 		{
+			
+			/*	added additional bounding box to check for the player, 
+			 *	because the protesters don't need to be shouting in the
+			 *	iceman's ear.
+			 */	
+			
 			BoundingBox BB = BoundingBox(getX() - 1, getY() - 1, 6);
 
 			Actor* collidedWith = world->collisionWith(BB);
@@ -726,7 +748,12 @@ void Protester::doSomething()
 					player->takeDamage(DamageSource::protest);
 
 					m_nonShoutingActions = 0;
+					return;
 				}
+			}
+			else
+			{
+				PathTowardsPlayer();	
 			}
 		}
 		else
@@ -734,10 +761,7 @@ void Protester::doSomething()
 			m_nonShoutingActions++;
 		}
 
-		if (world->hasLOSToPlayer(this))
-		{
-
-		}
+		
 	}
 	else
 	{
@@ -792,8 +816,7 @@ void Protester::takeDamage(DamageSource src)
 
 		if (m_state == LeaveOilField)
 		{
-			world->getPathFinder()->buildPaths();
-			m_pathOut = world->getPathFinder()->getPathFrom(getX(), getY());
+			m_pathOut = world->getPathFinder()->getPathToExitFrom(getX(), getY());
 		}
 	}
 }
@@ -822,7 +845,9 @@ void RegularProtester::foundGold()
 
 	world->playSound(SOUND_PROTESTER_FOUND_GOLD);
 
-	
+	world->increaseScore(25);
+
+	m_state = LeaveOilField;
 }
 
 int RegularProtester::getGiveUpPoints()
@@ -838,15 +863,95 @@ RegularProtester::~RegularProtester()
 
 // HardcoreProtester
 
-HardcoreProtester::HardcoreProtester(int x, int y) : Protester(IID_HARD_CORE_PROTESTER, 20, x, y)
+HardcoreProtester::HardcoreProtester(int x, int y) :	Protester(IID_HARD_CORE_PROTESTER, 20, x, y)
 {
-
+	m_maxPathSize = 16 + getWorld()->getLevel() * 2;
 }
 
 void HardcoreProtester::PathTowardsPlayer()
 {
+	StudentWorld* world = getWorld();
 
+	m_pathToPlayer = world->getPathFinder()->getPathToPlayerFrom(getX(), getY());
+
+	if (m_pathToPlayer.length() <= m_maxPathSize)
+	{
+		if (!m_pathToPlayer.empty())
+		{
+			char ch = m_pathToPlayer[0];
+
+			switch (ch)
+			{
+			case 'L':
+
+				if (getDirection() != left)
+				{
+					setDirection(left);
+				}
+
+				moveTo(getX() - 1, getY());
+
+				break;
+
+			case 'U':
+
+				if (getDirection() != up)
+				{
+					setDirection(up);
+				}
+
+				moveTo(getX(), getY() + 1);
+
+				break;
+
+			case 'R':
+
+				if (getDirection() != right)
+				{
+					setDirection(right);
+				}
+
+				moveTo(getX() + 1, getY());
+
+				break;
+
+			case 'D':
+
+				if (getDirection() != down)
+				{
+					setDirection(down);
+				}
+
+				moveTo(getX(), getY() - 1);
+
+				break;
+
+			case 'E':
+
+				setDead();
+
+				break;
+			}
+
+			m_pathToPlayer = m_pathToPlayer.substr(1);
+			return;
+		}
+	}
+	else
+	{
+		m_pathToPlayer.clear();
+
+		if (world->hasLOSToPlayer(this))
+		{
+
+		}
+		else
+		{
+
+		}
+	}
 }
+
 
 void HardcoreProtester::foundGold()
 {
@@ -910,7 +1015,7 @@ void Boulder::doSomething()
 			world->playSound(SOUND_FALLING_ROCK); 
 			m_isFalling = true;
 
-			world->getPathFinder()->updateGrid(getX(), getY());
+			world->getPathFinder()->updateGrid();
 		}
 		else
 		{

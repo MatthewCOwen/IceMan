@@ -119,15 +119,19 @@ public:
 	BoundingBox getBB();
 
 	bool isDamageable() const;
+
 	bool isPassable() const;
 
 	bool isAlive() const;
+
 	void setDead();
 
 	int getHealth() const;
+
 	void incHealth();
 
 	void decHealth();
+
 	void decHealth(int i);
 
 	int getTicksAlive() const;
@@ -143,11 +147,15 @@ private:
 	int m_ticksAlive;
 
 	int m_health;
+
 	int m_iFrames;
 
 	bool m_isAlive;
+
 	bool m_isDamageable;
+
 	bool m_isPassable;
+
 };
 
 
@@ -168,14 +176,19 @@ public:
 		   bool isPassable = true);
 
 	void doSomething();
+	
 	void takeDamage(DamageSource src);
 
 	void gotSonarKit();
+	
 	void gotGoldNugget();
+	
 	void gotWater();
 
 	int getNumSquirts();
+	
 	int getNumSonarKits();
+	
 	int getNumGoldNuggets();
 
 	virtual ~Iceman();
@@ -183,8 +196,11 @@ public:
 private:
 
 	int m_numSonarKits;
+	
 	int m_numGoldNuggets;
+	
 	int m_numSquirts;
+
 };
 
 
@@ -202,9 +218,10 @@ public:
 	States getState() const;
 
 	virtual void doSomething();
-
-	virtual void foundGold() = 0;
+		
 	virtual void takeDamage(DamageSource src);
+	
+	virtual void foundGold() = 0;	
 
 	void toggleStunned();
 
@@ -213,13 +230,19 @@ public:
 private:
 		
 	virtual int getGiveUpPoints() = 0;
-	//virtual void ProtesterDoSomething() = 0;
+	
+	virtual void PathTowardsPlayer() = 0;
+
+protected:
 		
 	int m_XStepsInCurrentDir;
+
 	int m_ticksSinceDirectionChange;
 
 	int m_nonShoutingActions;
+	
 	int m_restingTickCount;
+	
 	int m_stunTicksLeft;
 
 	std::string m_pathOut;
@@ -261,6 +284,10 @@ private:
 	virtual void PathTowardsPlayer();
 
 	virtual void foundGold();
+
+	std::string m_pathToPlayer;
+
+	std::size_t m_maxPathSize;
 };
 
 
@@ -273,6 +300,7 @@ public:
 	Ice(int startX, int startY);
 
 	virtual void doSomething();
+	
 	virtual void takeDamage(DamageSource src);
 
 	virtual ~Ice();
@@ -285,6 +313,7 @@ public:
 	Boulder(int startX, int startY);
 		
 	virtual void doSomething();
+
 	virtual void takeDamage(DamageSource src);
 
 	virtual ~Boulder();
@@ -292,7 +321,9 @@ public:
 private:
 
 	int m_ticksUnstable;
+
 	bool m_isStable;
+	
 	bool m_isFalling;
 };
 
