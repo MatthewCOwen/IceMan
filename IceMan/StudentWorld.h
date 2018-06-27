@@ -52,8 +52,6 @@ public:
 
 	bool squirtTargets(BoundingBox BB, Squirt* blackList);
 
-	bool hasLOSToPlayer(Actor* a) const;
-
 	void scan(double x, double y);
 
 	double getDistSquared(double x1, double y1, double x2, double y2);
@@ -134,11 +132,19 @@ public:
 
 	const std::string getPathToPlayerFrom(int x, int y);
 
+	bool hasUnobstructedPathToPlayer(Actor * a);
+
 	void showPath();
 
 	void updateGrid();
 
 	bool isValidLocation(int x, int y);
+
+	const std::string getValidDirections(Point p);
+
+	void markBoulder(int x, int y);
+
+	bool isIntersection(const std::string s);
 
 	bool m_needsUpdating;
 

@@ -49,7 +49,13 @@ bool Point::operator!=(Point& p)
 
 bool Point::isValid() const
 {
-	return m_x != -1 && m_y != -1;
+	return	(m_x != -1 && m_y != -1);
+}
+
+bool Point::isInBounds() const
+{
+	return	(m_x >= 0 && m_x <= 60) &&
+			(m_y >= 0 && m_y <= 60);
 }
 
 Point Point::getAdjLeft() const
@@ -254,27 +260,27 @@ void Actor::faceTowards(Actor* other)
 	int deltaY = getY() - other->getY();
 	Direction dir = getDirection();
 
-	if (deltaX >= 0)
+	if (deltaY < 0)
+	{
+		setDirection(up);
+		return;
+	}	
+
+	if (deltaY > 0)
+	{
+		setDirection(down);
+		return;
+	}
+	
+	if (deltaX > 0)
 	{
 		setDirection(left);
 		return;
 	}
-	
-	if (deltaX <= 0)
+
+	if (deltaX < 0)
 	{
 		setDirection(right);
-		return;
-	}
-
-	if (deltaY >= 0)
-	{
-		setDirection(up);
-		return;
-	}
-
-	if (deltaY <= 0)
-	{
-		setDirection(down);
 		return;
 	}
 }
@@ -648,99 +654,98 @@ Protester::Protester(int imageID, int health,
 										m_ticksSinceDirectionChange(0)
 {
 	setVisible(true);
-	m_restingTickCount = std::max(0, 3 - (int)getWorld()->getLevel() / 4);
-	m_XStepsInCurrentDir = rand() % 53 + 8;
+	m_restingTickCount = max(0, 3 - (int)getWorld()->getLevel() / 4);
+	m_stepsInCurrDir = rand() % 53 + 8;
 }
 
 void Protester::doSomething()
 {
 	StudentWorld* world = getWorld();
 
-	if (m_state == LeaveOilField)
+	if (getTicksAlive() % m_restingTickCount == 0)
 	{
-		if (getX() == 60 && getY() == 60)
+		if (m_state == LeaveOilField)
 		{
-			setDead();
-			return;
-		}
-		else
-		{
-			if (!m_pathOut.empty())
+			if (getX() == 60 && getY() == 60)
 			{
-				string temp_path = world->getPathFinder()->getPathToExitFrom(getX(), getY());
-
-				if (temp_path.length() < m_pathOut.length())
-				{
-					m_pathOut = temp_path;
-				}
-
-				char ch = m_pathOut[0];
-
-				switch (ch)
-				{
-				case 'L':
-					moveTo(getX() - 1, getY());
-					break;
-				case 'U':
-					moveTo(getX(), getY() + 1);
-					break;
-				case 'R':
-					moveTo(getX() + 1, getY());
-					break;
-				case 'D':
-					moveTo(getX(), getY() - 1);
-					break;
-				case 'E':
-					setDead();
-					break;
-				}
-
-			// Code to make the protester spin around as they exit the oil 
-			// field. Because why not?
-			 
-			/*
-				Direction dir = getDirection();
-
-				switch (dir)
-				{
-				case left:
-					setDirection(up);
-					break;
-				case up:
-					setDirection(right);
-					break;
-				case right:
-					setDirection(down);
-					break;
-				case down:
-					setDirection(left);
-					break;
-				}
-			*/
-
-
-				m_pathOut = m_pathOut.substr(1);
+				setDead();
 				return;
 			}
-		}
-	}
+			else
+			{
+				if (!m_pathOut.empty())
+				{
+					string temp_path = world->getPathFinder()->getPathToExitFrom(getX(), getY());
 
-	if (getTicksAlive() % m_restingTickCount == 0 && m_stunTicksLeft == 0)
-	{
-		if (m_nonShoutingActions == 15)
+					if (temp_path.length() < m_pathOut.length())
+					{
+						m_pathOut = temp_path;
+					}
+
+					char ch = m_pathOut[0];
+
+					switch (ch)
+					{
+					case 'L':
+
+						if (getDirection() != left)
+						{
+							setDirection(left);
+						}
+
+						moveTo(getX() - 1, getY());
+						break;
+					case 'U':
+
+						if (getDirection() != up)
+						{
+							setDirection(up);
+						}
+
+						moveTo(getX(), getY() + 1);
+						break;
+					case 'R':
+
+						if (getDirection() != right)
+						{
+							setDirection(right);
+						}
+
+						moveTo(getX() + 1, getY());
+						break;
+					case 'D':
+
+						if (getDirection() != down)
+						{
+							setDirection(down);
+						}
+
+						moveTo(getX(), getY() - 1);
+						break;
+					case 'E':
+						setDead();
+						break;
+					}
+
+					m_pathOut = m_pathOut.substr(1);
+					return;
+				}
+			}
+		}
+
+		if (m_stunTicksLeft == 0)
 		{
-			
-			/*	added additional bounding box to check for the player, 
-			 *	because the protesters don't need to be shouting in the
-			 *	iceman's ear.
-			 */	
-			
+			/*	added additional bounding box to check for the player,
+			*	because the protesters don't need to be shouting in the
+			*	iceman's ear.
+			*/
+
 			BoundingBox BB = BoundingBox(getX() - 1, getY() - 1, 6);
 
 			Actor* collidedWith = world->collisionWith(BB);
 			Iceman* player = world->getPlayer();
 
-			if (*&collidedWith == *&player)
+			if (m_nonShoutingActions >= 15 && (*&collidedWith == *&player))
 			{
 				if (isFacing(collidedWith))
 				{
@@ -753,37 +758,25 @@ void Protester::doSomething()
 			}
 			else
 			{
-				PathTowardsPlayer();	
+				m_nonShoutingActions++;
 			}
+			
+			pathTowardsPlayer();
 		}
 		else
 		{
-			m_nonShoutingActions++;
+			if (m_stunTicksLeft > 0)
+			{
+				m_stunTicksLeft--;
+			}
+			return;
 		}
-
-		
-	}
-	else
-	{
-		if (m_stunTicksLeft > 0)
-		{
-			m_stunTicksLeft--;
-		}
-
-		return;
 	}
 }
 
 Protester::States Protester::getState() const
 {
 	return m_state;
-}
-
-void Protester::toggleStunned()
-{
-	int lvl = getWorld()->getLevel();
-
-	std::max(50, 100 - lvl * 10);
 }
 
 void Protester::takeDamage(DamageSource src)
@@ -811,6 +804,7 @@ void Protester::takeDamage(DamageSource src)
 			else
 			{
 				world->playSound(SOUND_PROTESTER_ANNOYED);
+				m_stunTicksLeft = max(50, 100 - int(world->getLevel()) * 10);
 			}
 		}
 
@@ -834,9 +828,84 @@ RegularProtester::RegularProtester(int x, int y) : Protester(IID_PROTESTER, 5, x
 
 }
 
-void RegularProtester::PathTowardsPlayer()
+void RegularProtester::pathTowardsPlayer()
 {
+	if (getWorld()->getPathFinder()->hasUnobstructedPathToPlayer(this))
+	{
+		faceTowards(getWorld()->getPlayer());
 
+		Direction dir = getDirection();
+		
+		moveTo(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+			   getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+		m_stepsInCurrDir = 0;
+	}
+	else
+	{
+		Direction dir = getDirection();
+
+		Point newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+							getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+		BoundingBox BB = BoundingBox(newXY.getX(), newXY.getY());
+
+		Actor* a = getWorld()->collisionWith(BB);
+
+		string validDirs = getWorld()->getPathFinder()->getValidDirections(getBB().getXY());
+
+		if (validDirs.length() == 1)
+		{
+			m_stepsInCurrDir = 0;
+		}
+
+		bool isXRoad = getWorld()->getPathFinder()->isIntersection(validDirs);
+
+		if (m_stepsInCurrDir == 0	|| !(newXY.isInBounds())	|| 
+			isXRoad					|| !(a->isPassable()))
+		{
+			char ch = validDirs[rand() % validDirs.length()];
+
+			switch (ch)
+			{
+			case 'U':
+				m_ticksSinceDirectionChange = 0;
+				setDirection(up);
+				break;
+			case 'D':
+				m_ticksSinceDirectionChange = 0;
+				setDirection(down);
+				break;
+			case 'L':
+				m_ticksSinceDirectionChange = 0;
+				setDirection(left);
+				break;
+			case 'R':
+				m_ticksSinceDirectionChange = 0;
+				setDirection(right);
+				break;
+			}
+
+			m_stepsInCurrDir = rand() % 52 + 8;
+		}
+		else
+		{
+
+		}
+		
+		dir = getDirection();
+
+		newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+					  getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+		if (validDirs.length() >= 1)
+		{	
+			moveTo(newXY.getX(), newXY.getY());
+
+			m_stepsInCurrDir--;
+			m_ticksSinceDirectionChange++;
+		}
+	}
 }
 
 void RegularProtester::foundGold()
@@ -868,7 +937,7 @@ HardcoreProtester::HardcoreProtester(int x, int y) :	Protester(IID_HARD_CORE_PRO
 	m_maxPathSize = 16 + getWorld()->getLevel() * 2;
 }
 
-void HardcoreProtester::PathTowardsPlayer()
+void HardcoreProtester::pathTowardsPlayer()
 {
 	StudentWorld* world = getWorld();
 
@@ -941,7 +1010,7 @@ void HardcoreProtester::PathTowardsPlayer()
 	{
 		m_pathToPlayer.clear();
 
-		if (world->hasLOSToPlayer(this))
+		if (world->getPathFinder()->hasUnobstructedPathToPlayer(this))
 		{
 
 		}

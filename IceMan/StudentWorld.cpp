@@ -360,47 +360,6 @@ bool StudentWorld::squirtTargets(BoundingBox BB, Squirt* blackList)
 	return hitTargets;
 }
 
-bool StudentWorld::hasLOSToPlayer(Actor* a) const
-{
-	int a_x = a->getX();
-	int a_y = a->getY();
-	
-	int p_x = m_player->getX();
-	int p_y = m_player->getY();
-
-	bool hasLOS = false;
-
-	for (int i = a_x; i < a_x + 4 && !hasLOS; i++)
-	{
-		if (i >= p_x || i < p_x + 4)
-		{
-			hasLOS = true;
-		}
-	}
-
-	for (int j = a_y; j < a_y + 4 && !hasLOS; j++)
-	{
-		if (j >= p_y || j < p_y + 4)
-		{
-			hasLOS = true;
-		}
-	}
-
-	if (hasLOS)
-	{
-		for (size_t i = 0; i < m_listActors.size(); i++)
-		{
-			if (!m_listActors[i]->isDamageable() && !m_listActors[i]->isPassable())
-			{
-
-			}
-		}
-	}
-
-
-	return hasLOS;
-}
-
 bool StudentWorld::isValidSpawnLocation(int x, int y) 
 {
 	bool isValid;
@@ -589,7 +548,9 @@ void PathFinder::updateGrid()
 	{
 		for (int y = 0; y < 64; y++)
 		{
-			if (m_world->getIceManager()->checkIce(x, y) && !isalpha(m_pathToExit[x][63 - y]))
+			if (m_world->getIceManager()->checkIce(x, y)	&& 
+				!isalpha(m_pathToExit[x][63 - y])			&&
+				m_pathToExit[x][63 - y] != '@')
 			{
 				m_pathToExit[x][63 - y] = '#';
 				m_needsUpdating = true;
@@ -656,6 +617,59 @@ void PathFinder::buildPathToExit()
 	m_needsUpdating = false;
 
 	delete[] adjPoints;
+}
+
+bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
+{
+	int a_x = a->getX();
+	int a_y = a->getY();
+	
+	int p_x = m_world->getPlayer()->getX();
+	int p_y = m_world->getPlayer()->getY();
+
+	if (a_x == p_x || a_y == p_y)
+	{
+		if (a_y == p_y)
+		{
+			int start = a_x < p_x ? a_x : p_x;
+			int end = start == a_x ? p_x : a_x;
+
+			char ch;
+
+			for (int i = start; i < end; i++)
+			{
+				ch = m_pathToExit[i][63 - a_y];
+
+				if (!(isalpha(ch) || ch == '#'))
+				{
+					return false;
+				}
+			}
+		}
+		else
+		{
+			int start = a_y < p_y ? a_y : p_y;
+			int end = start == a_y ? p_y : a_y;
+
+			char ch;
+
+			for (int j = start; j < end; j++)
+			{
+				ch = m_pathToExit[a_x][63 - j];
+
+				if (!(isalpha(ch) || ch == '#'))
+				{
+					return false;
+				}
+			}
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void PathFinder::buildPathToPlayer()
@@ -865,3 +879,61 @@ const string PathFinder::getPathToExitFrom(int x, int y)
 	return oss.str();
 }
 
+const string PathFinder::getValidDirections(Point p)
+{
+	string retVal = "";
+	Point temp;
+	char ch;
+	
+	temp = p.getAdjUp();
+	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+
+	if (isalpha(ch) || ch == '#')
+	{
+		retVal += 'U';
+	}
+
+	temp = p.getAdjDown();
+	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+
+	if (isalpha(ch) || ch == '#')
+	{
+		retVal += 'D';
+	}
+
+	temp = p.getAdjLeft();
+	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+
+	if (isalpha(ch) || ch == '#')
+	{
+		retVal += 'L';
+	}
+
+	temp = p.getAdjRight();
+	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+
+	if (isalpha(ch) || ch == '#')
+	{
+		retVal += 'R';
+	}
+
+	return retVal;
+}
+
+void PathFinder::markBoulder(int x, int y)
+{
+	for (int i = x; i < x + 3; i++)
+	{
+		for (int j = y; j < y + 3; j++)
+		{
+			m_pathToExit[i][63 - j] = '@';
+			m_pathToPlayer[i][63 - j] = '@';
+		}
+	}
+}
+
+bool PathFinder::isIntersection(const string s)
+{
+	return ((s.find('U') != string::npos || s.find('D') != string::npos) && 
+			(s.find('L') != string::npos || s.find('R') != string::npos));
+}

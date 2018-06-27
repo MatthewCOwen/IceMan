@@ -63,9 +63,12 @@ public:
 	
 	bool isValid() const;
 
+	bool isInBounds() const;
+
 private:
 
 	int m_x;
+
 	int m_y;
 };
 
@@ -94,6 +97,7 @@ public:
 private:
 
 	int m_size;
+
 	Point* m_box;
 };
 
@@ -112,6 +116,7 @@ public:
 	void faceTowards(Actor* other);
 		
 	virtual void move();
+
 	virtual void takeDamage(DamageSource src) = 0;
 
 	StudentWorld* getWorld();
@@ -214,7 +219,6 @@ public:
 
 	Protester(int imageID, int health, int x, int y);
 
-	
 	States getState() const;
 
 	virtual void doSomething();
@@ -223,19 +227,17 @@ public:
 	
 	virtual void foundGold() = 0;	
 
-	void toggleStunned();
-
 	virtual ~Protester();
 
 private:
 		
 	virtual int getGiveUpPoints() = 0;
 	
-	virtual void PathTowardsPlayer() = 0;
+	virtual void pathTowardsPlayer() = 0;
 
 protected:
 		
-	int m_XStepsInCurrentDir;
+	int m_stepsInCurrDir;
 
 	int m_ticksSinceDirectionChange;
 
@@ -264,7 +266,7 @@ private:
 
 	virtual int getGiveUpPoints();
 
-	virtual void PathTowardsPlayer();
+	virtual void pathTowardsPlayer();
 
 	virtual void foundGold();
 };
@@ -281,7 +283,7 @@ private:
 
 	virtual int getGiveUpPoints();
 
-	virtual void PathTowardsPlayer();
+	virtual void pathTowardsPlayer();
 
 	virtual void foundGold();
 
