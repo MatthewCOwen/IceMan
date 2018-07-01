@@ -239,7 +239,7 @@ protected:
 		
 	int m_stepsInCurrDir;
 
-	int m_ticksSinceDirectionChange;
+	int m_ticksSinceAxisSwap;
 
 	int m_nonShoutingActions;
 	

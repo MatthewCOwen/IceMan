@@ -36,7 +36,7 @@ public:
 
 	PathFinder* getPathFinder();
 
-	Actor* collisionWith(BoundingBox BB);
+	Actor* collisionWith(Actor * a, BoundingBox BB);
 
 	Iceman* getPlayer();
 
@@ -111,7 +111,8 @@ public:
 	bool checkIce(int x, int y);
 
 	bool clearIce(int x, int y);
-	
+
+	void hideIce(int x, int y);	
 	~IceManager();
 
 private:
@@ -142,7 +143,7 @@ public:
 
 	const std::string getValidDirections(Point p);
 
-	void markBoulder(int x, int y);
+	const std::string getValidPerpDirs(Point p, GraphObject::Direction dir);
 
 	bool isIntersection(const std::string s);
 

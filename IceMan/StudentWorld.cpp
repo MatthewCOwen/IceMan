@@ -75,8 +75,7 @@ int StudentWorld::init()
 			if (!isTooClose && !isBlockingShaft)
 			{
 				m_listActors.push_back(new Boulder(x, y));
-				m_ice->clearIce(x, y);
-				
+				m_ice->hideIce(x, y);
 			}
 
 		} while (isTooClose || isBlockingShaft);
@@ -148,7 +147,7 @@ int StudentWorld::move()
 		
 		system("cls");
 		cout << m_ticksThisSec << endl;
-		//m_path->showPath();
+		m_path->showPath();
 		
 		m_ticksThisSec = 0;
 	}
@@ -159,9 +158,6 @@ int StudentWorld::move()
 
 	setGameStatText(getGameText());
 
-	// This code is here merely to allow the game to build, run, and terminate after you hit enter a few times.
-	// Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
-	
 	if (!m_player->isAlive() || m_hitESC)
 	{
 		//decLives();
@@ -258,9 +254,9 @@ StudentWorld* StudentWorld::getInstance()
 	return StudentWorld::world;
 }
 
-Actor* StudentWorld::collisionWith(BoundingBox BB)
+Actor* StudentWorld::collisionWith(Actor * a, BoundingBox BB)
 {
-	if (BB.intersects(m_player->getBB()) && BB != m_player->getBB())
+	if (&*a != &*m_player && BB.intersects(m_player->getBB()))
 	{
 		return m_player;
 	}
@@ -412,8 +408,21 @@ StudentWorld::~StudentWorld()
 		delete m_listActors.back(), m_listActors.pop_back();
 	}
 
-	delete m_player;
-	delete m_ice;
+	/*
+		This feels really hacky, but it stops the read-access violations that
+		would happen if you hit 'q' at the title screen. Without this fix,
+		this destructor tries to delete uninitialized pointers.
+	*/
+
+	if ((unsigned int)(void *)(m_player) != 0xCDCDCDCD)
+	{
+		delete m_player;
+	}
+
+	if ((unsigned int)(void *)(m_ice) != 0xCDCDCDCD)
+	{
+		delete m_ice;
+	}	
 }
 
 
@@ -463,13 +472,13 @@ bool IceManager::clearIce(int x, int y)
 
 	bool didMine = false;
 
-	for (int y1 = y; y1 < (y + 4); y1++)
+	for (int j = y; j < (y + 4); j++)
 	{
-		for (int x1 = x; x1 < (x + 4); x1++)
+		for (int i = x; i < (x + 4); i++)
 		{
-			if (x1 < 64 && x1 >= 0)
+			if (i < 64 && i >= 0)
 			{
-				Ice* temp = m_arr[64 * y1 + x1];
+				Ice* temp = m_arr[64 * j + i];
 
 				if (temp != nullptr && !didMine)
 				{
@@ -477,7 +486,7 @@ bool IceManager::clearIce(int x, int y)
 				}
 
 				delete temp;
-				m_arr[64 * y1 + x1] = nullptr;
+				m_arr[64 * j + i] = nullptr;
 			}
 		}
 	}
@@ -486,15 +495,28 @@ bool IceManager::clearIce(int x, int y)
 
 bool IceManager::checkIce(int x, int y)
 {
-	for (int Y = y; Y < y + 4; Y++)
+	for (int j = y; j < y + 4; j++)
 	{
-		for (int X = x; X < x + 4; X++)
+		for (int i = x; i < x + 4; i++)
 		{
-			if (m_arr[64 * Y + X] != nullptr)
+			if (m_arr[64 * j + i] != nullptr) 
+			{
 				return false;
+			}
 		}
 	}
 	return true;
+}
+
+void IceManager::hideIce(int x, int y)
+{
+	for (int j = y; j < y + 4; j++)
+	{
+		for (int i = x; i < x + 4; i++)
+		{
+			m_arr[64 * j + i]->setVisible(false);
+		}
+	}
 }
 
 IceManager::~IceManager()
@@ -539,7 +561,7 @@ PathFinder::PathFinder(StudentWorld* world) : m_world(world), m_needsUpdating(tr
 	int x = 60;
 	int y = 60;
 
-	m_pathToExit[60][63 - y] = 'E';
+	m_pathToExit[x][63 - y] = 'E';
 }
 
 void PathFinder::updateGrid()
@@ -640,7 +662,7 @@ bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
 			{
 				ch = m_pathToExit[i][63 - a_y];
 
-				if (!(isalpha(ch) || ch == '#'))
+				if (!(isalpha(ch) || ch == '#' || ch == '@'))
 				{
 					return false;
 				}
@@ -657,7 +679,7 @@ bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
 			{
 				ch = m_pathToExit[a_x][63 - j];
 
-				if (!(isalpha(ch) || ch == '#'))
+				if (!(isalpha(ch) || ch == '#' || ch == '@'))
 				{
 					return false;
 				}
@@ -920,16 +942,56 @@ const string PathFinder::getValidDirections(Point p)
 	return retVal;
 }
 
-void PathFinder::markBoulder(int x, int y)
+const string PathFinder::getValidPerpDirs(Point p, GraphObject::Direction dir)
 {
-	for (int i = x; i < x + 3; i++)
+	string retVal = "";
+
+	string validDirs = getValidDirections(p);
+
+	int pos;
+
+	switch (dir)
 	{
-		for (int j = y; j < y + 3; j++)
+	case GraphObject::Direction::up:
+	case GraphObject::Direction::down:
+		
+		pos = validDirs.find('L');
+
+		if (pos != string::npos)
 		{
-			m_pathToExit[i][63 - j] = '@';
-			m_pathToPlayer[i][63 - j] = '@';
+			retVal += 'L';
 		}
+
+		pos = validDirs.find('R');
+
+		if (pos != string::npos)
+		{
+			retVal += 'R';
+		}
+
+		break;
+	
+	case GraphObject::Direction::left:
+	case GraphObject::Direction::right:
+
+		pos = validDirs.find('U');
+
+		if (pos != string::npos)
+		{
+			retVal += 'U';
+		}
+
+		pos = validDirs.find('D');
+		
+		if (pos != string::npos)
+		{
+			retVal += 'D';
+		}
+
+		break;
 	}
+
+	return retVal;
 }
 
 bool PathFinder::isIntersection(const string s)

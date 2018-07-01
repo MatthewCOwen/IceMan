@@ -356,22 +356,9 @@ void Iceman::doSomething()
 					setDirection(left);
 					break;
 				}
-				/*
-					Building a BoundingBox that consists of the 4 center 
-					pixels within the iceman sprite, shifted 1 pixel to the left
 
-					OOOO	X's represent the BoundingBox that will test for collisions
-					XXOO
-					XXOO
-					OOOO
-
-					doing it this way because sprites are 4x4 and have no center
-					also feels a little less hacked together than
-					having a center point of getX() + 1.5, getY() + 1.5
-				*/
-
-				BB = BoundingBox(getX(), getY() + 1, 2);
- 				collidedWith = world->collisionWith(BB);
+				BB = BoundingBox(getX() - 1, getY());
+ 				collidedWith = world->collisionWith(this, BB);
 
 				if (collidedWith != nullptr)
 				{
@@ -400,22 +387,8 @@ void Iceman::doSomething()
 					break;
 				}
 
-				/*
-					Building a BoundingBox that consists of the 4 center 
-					pixels within the iceman sprite, shifted 1 pixel up
-
-					OXXO	X's represent the BoundingBox that will test for collisions
-					OXXO
-					OOOO
-					OOOO
-					
-					doing it this way because sprites are 4x4 and have no center
-					also feels a little less hacked together than
-					having a center point of getX() + 1.5, getY() + 1.5
-				*/
-
-				BB = BoundingBox(getX() + 1, getY() + 2, 2);
- 				collidedWith = world->collisionWith(BB);
+				BB = BoundingBox(getX(), getY() + 1);
+ 				collidedWith = world->collisionWith(this, BB);
 
 				if (collidedWith != nullptr && &*collidedWith != &*this)
 				{
@@ -444,22 +417,8 @@ void Iceman::doSomething()
 					break;
 				}
 				
-				/*
-					Building a BoundingBox that consists of the 4 center 
-					pixels within the iceman sprite, shifted 1 pixel to the right
-
-					OOOO	X's represent the BoundingBox that will test for collisions
-					OOXX
-					OOXX
-					OOOO
-					
-					doing it this way because sprites are 4x4 and have no center
-					also feels a little less hacked together than
-					having a center point of getX() + 1.5, getY() + 1.5
-				*/
-
-				BB = BoundingBox(getX() + 2, getY() + 1, 2);
- 				collidedWith = world->collisionWith(BB);
+				BB = BoundingBox(getX() + 1, getY());
+ 				collidedWith = world->collisionWith(this, BB);
 
 				if (collidedWith != nullptr && &*collidedWith != &*this)
 				{
@@ -488,22 +447,8 @@ void Iceman::doSomething()
 					break;
 				}
 				
-				/*
-					Building a BoundingBox that consists of the 4 center 
-					pixels within the iceman sprite, shifted 1 pixel down
-					
-					OOOO	X's represent the BoundingBox that will test for collisions
-					OOOO
-					OXXO
-					OXXO
-					
-					doing it this way because sprites are 4x4 and have no center
-					also feels a little less hacked together than
-					having a center point of getX() + 1.5, getY() + 1.5
-				*/
-
-				BB = BoundingBox(getX() + 1, getY(), 2);
- 				collidedWith = world->collisionWith(BB);
+				BB = BoundingBox(getX(), getY() - 1);
+ 				collidedWith = world->collisionWith(this, BB);
 
 				if (collidedWith != nullptr && &*collidedWith != &*this)
 				{
@@ -543,7 +488,7 @@ void Iceman::doSomething()
 
 					BB = BoundingBox(squirtX, squirtY);
 
-					collidedWith = world->collisionWith(BB);
+					collidedWith = world->collisionWith(this, BB);
 
 					if (collidedWith != nullptr)
 					{
@@ -651,7 +596,7 @@ Protester::Protester(int imageID, int health,
 										m_state(InOilField),
 										m_nonShoutingActions(0),
 										m_stunTicksLeft(0),
-										m_ticksSinceDirectionChange(0)
+										m_ticksSinceAxisSwap(0)
 {
 	setVisible(true);
 	m_restingTickCount = max(0, 3 - (int)getWorld()->getLevel() / 4);
@@ -742,7 +687,7 @@ void Protester::doSomething()
 
 			BoundingBox BB = BoundingBox(getX() - 1, getY() - 1, 6);
 
-			Actor* collidedWith = world->collisionWith(BB);
+			Actor* collidedWith = world->collisionWith(this, BB);
 			Iceman* player = world->getPlayer();
 
 			if (m_nonShoutingActions >= 15 && (*&collidedWith == *&player))
@@ -840,6 +785,8 @@ void RegularProtester::pathTowardsPlayer()
 			   getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
 
 		m_stepsInCurrDir = 0;
+
+		return;
 	}
 	else
 	{
@@ -848,62 +795,79 @@ void RegularProtester::pathTowardsPlayer()
 		Point newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
 							getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
 
-		BoundingBox BB = BoundingBox(newXY.getX(), newXY.getY());
-
-		Actor* a = getWorld()->collisionWith(BB);
-
 		string validDirs = getWorld()->getPathFinder()->getValidDirections(getBB().getXY());
-
-		if (validDirs.length() == 1)
-		{
-			m_stepsInCurrDir = 0;
-		}
 
 		bool isXRoad = getWorld()->getPathFinder()->isIntersection(validDirs);
 
-		if (m_stepsInCurrDir == 0	|| !(newXY.isInBounds())	|| 
-			isXRoad					|| !(a->isPassable()))
+		if (m_stepsInCurrDir == 0 || !(newXY.isInBounds()) || validDirs.length() == 1)
 		{
 			char ch = validDirs[rand() % validDirs.length()];
-
+			
 			switch (ch)
 			{
 			case 'U':
-				m_ticksSinceDirectionChange = 0;
 				setDirection(up);
 				break;
 			case 'D':
-				m_ticksSinceDirectionChange = 0;
 				setDirection(down);
 				break;
 			case 'L':
-				m_ticksSinceDirectionChange = 0;
 				setDirection(left);
 				break;
 			case 'R':
-				m_ticksSinceDirectionChange = 0;
 				setDirection(right);
 				break;
 			}
 
 			m_stepsInCurrDir = rand() % 52 + 8;
 		}
-		else
+		else if (isXRoad && m_ticksSinceAxisSwap >= 200)
 		{
+			validDirs = getWorld()->getPathFinder()->getValidPerpDirs(getBB().getXY(), dir);
 
+			char ch = validDirs[rand() % validDirs.length()];
+			
+			switch (ch)
+			{
+			case 'U':
+				setDirection(up);
+				break;
+			case 'D':
+				setDirection(down);
+				break;
+			case 'L':
+				setDirection(left);
+				break;
+			case 'R':
+				setDirection(right);
+				break;
+			}
+
+			m_stepsInCurrDir = rand() % 52 + 8;
+
+			m_ticksSinceAxisSwap = 0;
 		}
 		
-		dir = getDirection();
+		Direction newDir = getDirection();
 
 		newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
 					  getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
 
-		if (validDirs.length() >= 1)
+		if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.getX(), newXY.getY()))
 		{	
 			moveTo(newXY.getX(), newXY.getY());
 
 			m_stepsInCurrDir--;
-			m_ticksSinceDirectionChange++;
+
+			if (((dir == left || dir == right) && (newDir == left || newDir == right)) ||
+				((dir == up || dir == down) && (newDir == up || newDir == down)))
+			{
+				m_ticksSinceAxisSwap++;
+			}
+		}
+		else
+		{
+			m_stepsInCurrDir = 0;
 		}
 	}
 }
@@ -1071,8 +1035,10 @@ void Boulder::doSomething()
 {
 	StudentWorld* world = getWorld();
 
-	if (world->getIceManager()->checkIce(getX(), getY() - 1) && m_isStable)
+	if (world->getIceManager()->checkIce(getX(), getY() - 4) && m_isStable)
 	{
+		world->getIceManager()->clearIce(getX(), getY());
+
 		m_isStable = false;
 		m_ticksUnstable = 0;
 	}
@@ -1096,7 +1062,7 @@ void Boulder::doSomething()
 	{
 		BoundingBox BB = BoundingBox(getX(), getY() - 1);
 
-		Actor* collidedWith = world->collisionWith(BB);
+		Actor* collidedWith = world->collisionWith(this, BB);
 
 		if (world->getIceManager()->checkIce(getX(), getY() - 1))
 		{
@@ -1121,7 +1087,7 @@ void Boulder::takeDamage(DamageSource src) { return; }
 
 Boulder::~Boulder()
 {
-
+	getWorld()->getIceManager()->clearIce(getX(), getY());
 }
 
 
@@ -1312,7 +1278,7 @@ void GoldNugget::ItemDoSomething()
 
 	if (state == Temporary)
 	{
-		Actor* collidedWith = world->collisionWith(getBB());
+		Actor* collidedWith = world->collisionWith(this, getBB());
 
 		if (collidedWith != nullptr)
 		{
