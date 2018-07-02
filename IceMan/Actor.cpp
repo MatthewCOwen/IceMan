@@ -799,7 +799,7 @@ void RegularProtester::pathTowardsPlayer()
 
 		bool isXRoad = getWorld()->getPathFinder()->isIntersection(validDirs);
 
-		if (m_stepsInCurrDir == 0 || !(newXY.isInBounds()) || validDirs.length() == 1)
+		if (m_stepsInCurrDir == 0 || !(newXY.isInBounds()))
 		{
 			char ch = validDirs[rand() % validDirs.length()];
 			

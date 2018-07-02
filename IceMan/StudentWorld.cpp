@@ -20,6 +20,10 @@ StudentWorld* StudentWorld::world;
 StudentWorld::StudentWorld(string assetDir) :	GameWorld(assetDir)
 {
 	world = this;
+
+	m_player = nullptr;
+	
+	m_ice = nullptr;
 }
 
 int StudentWorld::init() 
@@ -147,7 +151,7 @@ int StudentWorld::move()
 		
 		system("cls");
 		cout << m_ticksThisSec << endl;
-		m_path->showPath();
+		//m_path->showPath();
 		
 		m_ticksThisSec = 0;
 	}
@@ -407,13 +411,22 @@ StudentWorld::~StudentWorld()
 	{
 		delete m_listActors.back(), m_listActors.pop_back();
 	}
+	
+	if (m_player != nullptr)
+	{
+		delete m_player;
+	}
+
+	if (m_ice != nullptr)
+	{
+		delete m_ice;
+	}
 
 	/*
 		This feels really hacky, but it stops the read-access violations that
 		would happen if you hit 'q' at the title screen. Without this fix,
 		this destructor tries to delete uninitialized pointers.
-	*/
-
+	
 	if ((unsigned int)(void *)(m_player) != 0xCDCDCDCD)
 	{
 		delete m_player;
@@ -423,6 +436,7 @@ StudentWorld::~StudentWorld()
 	{
 		delete m_ice;
 	}	
+	*/
 }
 
 
@@ -549,11 +563,11 @@ PathFinder::PathFinder(StudentWorld* world) : m_world(world), m_needsUpdating(tr
 		{
 			if (m_world->getIceManager()->checkIce(x, y))
 			{
-				m_pathToExit[x][63 - y] = '#';
+				m_pathToExit[x][y] = '#';
 			}
 			else
 			{
-				m_pathToExit[x][63 - y] = ' ';
+				m_pathToExit[x][y] = ' ';
 			}
 		}
 	}
@@ -561,7 +575,7 @@ PathFinder::PathFinder(StudentWorld* world) : m_world(world), m_needsUpdating(tr
 	int x = 60;
 	int y = 60;
 
-	m_pathToExit[x][63 - y] = 'E';
+	m_pathToExit[x][y] = 'E';
 }
 
 void PathFinder::updateGrid()
@@ -571,10 +585,10 @@ void PathFinder::updateGrid()
 		for (int y = 0; y < 64; y++)
 		{
 			if (m_world->getIceManager()->checkIce(x, y)	&& 
-				!isalpha(m_pathToExit[x][63 - y])			&&
-				m_pathToExit[x][63 - y] != '@')
+				!isalpha(m_pathToExit[x][y])			&&
+				m_pathToExit[x][y] != '@')
 			{
-				m_pathToExit[x][63 - y] = '#';
+				m_pathToExit[x][y] = '#';
 				m_needsUpdating = true;
 			}
 		}
@@ -587,9 +601,9 @@ void PathFinder::buildPathToExit()
 	{
 		for (int y = 0; y < 64; y++)
 		{
-			if (isalpha(m_pathToExit[x][63 - y]))
+			if (isalpha(m_pathToExit[x][y]))
 			{
-				m_pathToExit[x][63 - y] = '#';
+				m_pathToExit[x][y] = '#';
 			}
 		}
 	}
@@ -600,7 +614,7 @@ void PathFinder::buildPathToExit()
 	// start from the exit point for protesters
 	Point start = Point(60, 60);
 	
-	m_pathToExit[start.getX()][63 - start.getY()] = 'E';
+	m_pathToExit[start.getX()][start.getY()] = 'E';
 
 	q.push(start);
 
@@ -613,25 +627,25 @@ void PathFinder::buildPathToExit()
 
 		if (adjPoints[GraphObject::Direction::left].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::left].getX()][63 - adjPoints[GraphObject::Direction::left].getY()] = 'R';
+			m_pathToExit[adjPoints[GraphObject::Direction::left].getX()][adjPoints[GraphObject::Direction::left].getY()] = 'R';
 			q.push(adjPoints[GraphObject::Direction::left]);
 		}
 
 		if (adjPoints[GraphObject::Direction::up].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::up].getX()][63 - adjPoints[GraphObject::Direction::up].getY()] = 'D';
+			m_pathToExit[adjPoints[GraphObject::Direction::up].getX()][adjPoints[GraphObject::Direction::up].getY()] = 'D';
 			q.push(adjPoints[GraphObject::Direction::up]);
 		}
 
 		if (adjPoints[GraphObject::Direction::right].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::right].getX()][63 - adjPoints[GraphObject::Direction::right].getY()] = 'L';
+			m_pathToExit[adjPoints[GraphObject::Direction::right].getX()][adjPoints[GraphObject::Direction::right].getY()] = 'L';
 			q.push(adjPoints[GraphObject::Direction::right]);
 		}
 
 		if (adjPoints[GraphObject::Direction::down].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::down].getX()][63 - adjPoints[GraphObject::Direction::down].getY()] = 'U';
+			m_pathToExit[adjPoints[GraphObject::Direction::down].getX()][adjPoints[GraphObject::Direction::down].getY()] = 'U';
 			q.push(adjPoints[GraphObject::Direction::down]);
 		}
 	}
@@ -660,7 +674,7 @@ bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
 
 			for (int i = start; i < end; i++)
 			{
-				ch = m_pathToExit[i][63 - a_y];
+				ch = m_pathToExit[i][a_y];
 
 				if (!(isalpha(ch) || ch == '#' || ch == '@'))
 				{
@@ -677,7 +691,7 @@ bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
 
 			for (int j = start; j < end; j++)
 			{
-				ch = m_pathToExit[a_x][63 - j];
+				ch = m_pathToExit[a_x][j];
 
 				if (!(isalpha(ch) || ch == '#' || ch == '@'))
 				{
@@ -700,7 +714,7 @@ void PathFinder::buildPathToPlayer()
 	{
 		for (int y = 0; y < 64; y++)
 		{
-			m_pathToPlayer[x][63 - y] = m_pathToExit[x][y] != ' ' ? '#' : ' ';
+			m_pathToPlayer[x][y] = m_pathToExit[x][y] != ' ' ? '#' : ' ';
 		}
 	}
 
@@ -711,7 +725,7 @@ void PathFinder::buildPathToPlayer()
 
 	// start at the player and build outwards
 	
-	m_pathToPlayer[x][63 - y] = 'P';
+	m_pathToPlayer[x][y] = 'P';
 
 	Point player = Point(x, y);
 
@@ -728,25 +742,25 @@ void PathFinder::buildPathToPlayer()
 
 		if (adjPoints[GraphObject::Direction::left].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::left].getX()][63 - adjPoints[GraphObject::Direction::left].getY()] = 'R';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::left].getX()][adjPoints[GraphObject::Direction::left].getY()] = 'R';
 			q.push(adjPoints[GraphObject::Direction::left]);
 		}
 
 		if (adjPoints[GraphObject::Direction::up].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::up].getX()][63 - adjPoints[GraphObject::Direction::up].getY()] = 'D';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::up].getX()][adjPoints[GraphObject::Direction::up].getY()] = 'D';
 			q.push(adjPoints[GraphObject::Direction::up]);
 		}
 
 		if (adjPoints[GraphObject::Direction::right].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::right].getX()][63 - adjPoints[GraphObject::Direction::right].getY()] = 'L';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::right].getX()][adjPoints[GraphObject::Direction::right].getY()] = 'L';
 			q.push(adjPoints[GraphObject::Direction::right]);
 		}
 
 		if (adjPoints[GraphObject::Direction::down].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::down].getX()][63 - adjPoints[GraphObject::Direction::down].getY()] = 'U';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::down].getX()][adjPoints[GraphObject::Direction::down].getY()] = 'U';
 			q.push(adjPoints[GraphObject::Direction::down]);
 		}
 	}
@@ -776,28 +790,28 @@ Point* PathFinder::getValidAdjPoints(const Point p, bool isPathingOut)
 	
 	temp = p.getAdjLeft();
 
-	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
 	{
 		adjPoints[GraphObject::Direction::left] = temp;
 	}
 
 	temp = p.getAdjUp();
 	
-	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
 	{
 		adjPoints[GraphObject::Direction::up] = temp;
 	}
 
 	temp = p.getAdjRight();
 
-	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
 	{
 		adjPoints[GraphObject::Direction::right] = temp;
 	}
 
 	temp = p.getAdjDown();
 
-	if (temp.isValid() && m_grid[temp.getX()][63 - temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
 	{
 		adjPoints[GraphObject::Direction::down] = temp;
 	}
@@ -826,7 +840,7 @@ void PathFinder::showPath()
 
 	for (int y = 0; y < 64; y++)
 	{
-		cout << 63 - y << '\t';
+		cout << y << '\t';
 
 		for (int x = 0; x < 64; x++)
 		{
@@ -839,7 +853,7 @@ void PathFinder::showPath()
 
 bool PathFinder::isValidLocation(int x, int y)
 {
-	return m_pathToExit[x][63 - y] != ' ';
+	return m_pathToExit[x][y] != ' ';
 }
 
 const string PathFinder::getPathToPlayerFrom(int x, int y)
@@ -850,22 +864,22 @@ const string PathFinder::getPathToPlayerFrom(int x, int y)
 
 	do
 	{
-		switch (m_pathToPlayer[x][63 - y])
+		switch (m_pathToPlayer[x][y])
 		{
 		case 'L':
-			oss << m_pathToPlayer[x--][63 - y];
+			oss << m_pathToPlayer[x--][y];
 			break;
 		case 'U':
-			oss << m_pathToPlayer[x][63 - y++];
+			oss << m_pathToPlayer[x][y++];
 			break;
 		case 'R':
-			oss << m_pathToPlayer[x++][63 - y];
+			oss << m_pathToPlayer[x++][y];
 			break;
 		case 'D':
-			oss << m_pathToPlayer[x][63 - y--];
+			oss << m_pathToPlayer[x][y--];
 			break;
 		}
-	} while (m_pathToPlayer[x][63 - y] != 'P');
+	} while (m_pathToPlayer[x][y] != 'P');
 
 	return oss.str();
 }
@@ -881,22 +895,22 @@ const string PathFinder::getPathToExitFrom(int x, int y)
 
 	do
 	{
-		switch (m_pathToExit[x][63 - y])
+		switch (m_pathToExit[x][y])
 		{
 		case 'L':
-			oss << m_pathToExit[x--][63 - y];
+			oss << m_pathToExit[x--][y];
 			break;
 		case 'U':
-			oss << m_pathToExit[x][63 - y++];
+			oss << m_pathToExit[x][y++];
 			break;
 		case 'R':
-			oss << m_pathToExit[x++][63 - y];
+			oss << m_pathToExit[x++][y];
 			break;
 		case 'D':
-			oss << m_pathToExit[x][63 - y--];
+			oss << m_pathToExit[x][y--];
 			break;
 		}
-	} while (m_pathToExit[x][63 - y] != 'E');
+	} while (m_pathToExit[x][y] != 'E');
 
 	return oss.str();
 }
@@ -908,7 +922,7 @@ const string PathFinder::getValidDirections(Point p)
 	char ch;
 	
 	temp = p.getAdjUp();
-	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+	ch = m_pathToExit[temp.getX()][temp.getY()];
 
 	if (isalpha(ch) || ch == '#')
 	{
@@ -916,7 +930,7 @@ const string PathFinder::getValidDirections(Point p)
 	}
 
 	temp = p.getAdjDown();
-	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+	ch = m_pathToExit[temp.getX()][temp.getY()];
 
 	if (isalpha(ch) || ch == '#')
 	{
@@ -924,7 +938,7 @@ const string PathFinder::getValidDirections(Point p)
 	}
 
 	temp = p.getAdjLeft();
-	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+	ch = m_pathToExit[temp.getX()][temp.getY()];
 
 	if (isalpha(ch) || ch == '#')
 	{
@@ -932,7 +946,7 @@ const string PathFinder::getValidDirections(Point p)
 	}
 
 	temp = p.getAdjRight();
-	ch = m_pathToExit[temp.getX()][63 - temp.getY()];
+	ch = m_pathToExit[temp.getX()][temp.getY()];
 
 	if (isalpha(ch) || ch == '#')
 	{
