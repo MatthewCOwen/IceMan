@@ -164,6 +164,7 @@ Actor::Actor(int imageID, int startX, int startY,
 			 bool isDamageable, bool isPassable) :	GraphObject(imageID, startX, startY, dir, size, depth),
 													m_BB(BoundingBox(startX, startY)),
 													m_isPassable(isPassable),
+													m_isDamageable(isDamageable),
 													m_health(health),
 													m_isAlive(true),
 													m_ticksAlive(0)
@@ -180,7 +181,7 @@ void Actor::move()
 
 	doSomething();
 
-	if (getX() != m_BB.getXY().getX() || getY() != m_BB.getXY().getY())
+	if (getX() != m_BB.getXY().m_x || getY() != m_BB.getXY().m_y)
 	{
 		m_BB.updateBB(getX(), getY());
 	}
@@ -428,7 +429,7 @@ void Iceman::doSomething()
 					}
 				}
 				
-				if (getX() <= 60 && canMove)
+				if (getX() < 60 && canMove)
 				{
 					if (world->getIceManager()->clearIce(getX() + 1, getY()))
 					{
@@ -506,6 +507,8 @@ void Iceman::doSomething()
 				if (m_numGoldNuggets > 0)
 				{
 					world->acceptActor(new GoldNugget(getX(), getY(), Item::States::Temporary));
+
+					m_numGoldNuggets--;
 				}
 				break;
 
@@ -596,7 +599,8 @@ Protester::Protester(int imageID, int health,
 										m_state(InOilField),
 										m_nonShoutingActions(0),
 										m_stunTicksLeft(0),
-										m_ticksSinceAxisSwap(0)
+										m_ticksSinceAxisSwap(0),
+										m_pathOut("")
 {
 	setVisible(true);
 	m_restingTickCount = max(0, 3 - (int)getWorld()->getLevel() / 4);
@@ -611,6 +615,7 @@ void Protester::doSomething()
 	{
 		if (m_state == LeaveOilField)
 		{
+
 			if (getX() == 60 && getY() == 60)
 			{
 				setDead();
@@ -618,63 +623,63 @@ void Protester::doSomething()
 			}
 			else
 			{
-				if (!m_pathOut.empty())
+				if (m_pathOut.empty())
 				{
-					string temp_path = world->getPathFinder()->getPathToExitFrom(getX(), getY());
-
-					if (temp_path.length() < m_pathOut.length())
-					{
-						m_pathOut = temp_path;
-					}
-
-					char ch = m_pathOut[0];
-
-					switch (ch)
-					{
-					case 'L':
-
-						if (getDirection() != left)
-						{
-							setDirection(left);
-						}
-
-						moveTo(getX() - 1, getY());
-						break;
-					case 'U':
-
-						if (getDirection() != up)
-						{
-							setDirection(up);
-						}
-
-						moveTo(getX(), getY() + 1);
-						break;
-					case 'R':
-
-						if (getDirection() != right)
-						{
-							setDirection(right);
-						}
-
-						moveTo(getX() + 1, getY());
-						break;
-					case 'D':
-
-						if (getDirection() != down)
-						{
-							setDirection(down);
-						}
-
-						moveTo(getX(), getY() - 1);
-						break;
-					case 'E':
-						setDead();
-						break;
-					}
-
-					m_pathOut = m_pathOut.substr(1);
-					return;
+					m_pathOut = world->getPathFinder()->getPathToExitFrom(getX(), getY());
 				}
+				
+				string temp_path = world->getPathFinder()->getPathToExitFrom(getX(), getY());
+
+				if (temp_path.length() < m_pathOut.length())
+				{
+					m_pathOut = temp_path;
+				}
+
+				switch (m_pathOut[0])
+				{
+				case 'L':
+
+					if (getDirection() != left)
+					{
+						setDirection(left);
+					}
+
+					moveTo(getX() - 1, getY());
+					break;
+				case 'U':
+
+					if (getDirection() != up)
+					{
+						setDirection(up);
+					}
+
+					moveTo(getX(), getY() + 1);
+					break;
+				case 'R':
+
+					if (getDirection() != right)
+					{
+						setDirection(right);
+					}
+
+					moveTo(getX() + 1, getY());
+					break;
+				case 'D':
+
+					if (getDirection() != down)
+					{
+						setDirection(down);
+					}
+
+					moveTo(getX(), getY() - 1);
+					break;
+				case 'E':
+					setDead();
+					break;
+				}
+
+				m_pathOut = m_pathOut.substr(1);
+				return;
 			}
 		}
 
@@ -728,35 +733,32 @@ void Protester::takeDamage(DamageSource src)
 {
 	StudentWorld* world = getWorld();
 
-	if (src != protest)
+	switch (src)
 	{
-		if (src == rockFall)
+	case DamageSource::protest:
+		break;
+
+	case DamageSource::rockFall:
+		m_state = LeaveOilField;
+		world->playSound(SOUND_PROTESTER_GIVE_UP);
+		world->increaseScore(500);
+		break;
+
+	case DamageSource::waterSpray:
+		decHealth(2);
+
+		if (getHealth() <= 0)
 		{
-			m_state = LeaveOilField;
 			world->playSound(SOUND_PROTESTER_GIVE_UP);
-			world->increaseScore(500);
+			m_state = LeaveOilField;
+			world->increaseScore(getGiveUpPoints());
 		}
 		else
 		{
-			decHealth(2);
-
-			if (getHealth() <= 0)
-			{
-				world->playSound(SOUND_PROTESTER_GIVE_UP);
-				m_state = LeaveOilField;
-				world->increaseScore(getGiveUpPoints());
-			}
-			else
-			{
-				world->playSound(SOUND_PROTESTER_ANNOYED);
-				m_stunTicksLeft = max(50, 100 - int(world->getLevel()) * 10);
-			}
+			world->playSound(SOUND_PROTESTER_ANNOYED);
+			m_stunTicksLeft = max(50, 100 - int(world->getLevel()) * 10);
 		}
-
-		if (m_state == LeaveOilField)
-		{
-			m_pathOut = world->getPathFinder()->getPathToExitFrom(getX(), getY());
-		}
+		break;
 	}
 }
 
@@ -821,7 +823,7 @@ void RegularProtester::pathTowardsPlayer()
 
 			m_stepsInCurrDir = rand() % 52 + 8;
 		}
-		else if (isXRoad && m_ticksSinceAxisSwap >= 200)
+		else if (isXRoad && m_ticksSinceAxisSwap >= 50)
 		{
 			validDirs = getWorld()->getPathFinder()->getValidPerpDirs(getBB().getXY(), dir);
 
@@ -848,22 +850,18 @@ void RegularProtester::pathTowardsPlayer()
 			m_ticksSinceAxisSwap = 0;
 		}
 		
-		Direction newDir = getDirection();
-
+		dir = getDirection();
+		
 		newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
 					  getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
-
-		if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.getX(), newXY.getY()))
+		
+		if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.m_x, newXY.m_y))
 		{	
-			moveTo(newXY.getX(), newXY.getY());
+			moveTo(newXY.m_x, newXY.m_y);
 
 			m_stepsInCurrDir--;
 
-			if (((dir == left || dir == right) && (newDir == left || newDir == right)) ||
-				((dir == up || dir == down) && (newDir == up || newDir == down)))
-			{
-				m_ticksSinceAxisSwap++;
-			}
+			m_ticksSinceAxisSwap++;
 		}
 		else
 		{
@@ -976,11 +974,94 @@ void HardcoreProtester::pathTowardsPlayer()
 
 		if (world->getPathFinder()->hasUnobstructedPathToPlayer(this))
 		{
+			faceTowards(getWorld()->getPlayer());
 
+			Direction dir = getDirection();
+
+			moveTo(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+				   getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+			m_stepsInCurrDir = 0;
+
+			return;
 		}
 		else
 		{
+			Direction dir = getDirection();
 
+			Point newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+								getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+			string validDirs = getWorld()->getPathFinder()->getValidDirections(getBB().getXY());
+
+			bool isXRoad = getWorld()->getPathFinder()->isIntersection(validDirs);
+
+			if (m_stepsInCurrDir == 0 || !(newXY.isInBounds()))
+			{
+				char ch = validDirs[rand() % validDirs.length()];
+
+				switch (ch)
+				{
+				case 'U':
+					setDirection(up);
+					break;
+				case 'D':
+					setDirection(down);
+					break;
+				case 'L':
+					setDirection(left);
+					break;
+				case 'R':
+					setDirection(right);
+					break;
+				}
+
+				m_stepsInCurrDir = rand() % 52 + 8;
+			}
+			else if (isXRoad && m_ticksSinceAxisSwap >= 50)
+			{
+				validDirs = getWorld()->getPathFinder()->getValidPerpDirs(getBB().getXY(), dir);
+
+				char ch = validDirs[rand() % validDirs.length()];
+
+				switch (ch)
+				{
+				case 'U':
+					setDirection(up);
+					break;
+				case 'D':
+					setDirection(down);
+					break;
+				case 'L':
+					setDirection(left);
+					break;
+				case 'R':
+					setDirection(right);
+					break;
+				}
+
+				m_stepsInCurrDir = rand() % 52 + 8;
+
+				m_ticksSinceAxisSwap = 0;
+			}
+
+			dir = getDirection();
+
+			newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+				getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+			if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.m_x, newXY.m_y))
+			{
+				moveTo(newXY.m_x, newXY.m_y);
+
+				m_stepsInCurrDir--;
+
+				m_ticksSinceAxisSwap++;
+			}
+			else
+			{
+				m_stepsInCurrDir = 0;
+			}
 		}
 	}
 }

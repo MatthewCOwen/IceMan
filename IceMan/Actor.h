@@ -65,8 +65,6 @@ public:
 
 	bool isInBounds() const;
 
-private:
-
 	int m_x;
 
 	int m_y;

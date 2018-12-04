@@ -143,6 +143,7 @@ int StudentWorld::init()
 
 int StudentWorld::move()
 {
+	/*
 	unsigned int t = static_cast<unsigned int>(time(nullptr));
 
 	if (m_currTime != t)
@@ -151,7 +152,7 @@ int StudentWorld::move()
 		
 		system("cls");
 		cout << m_ticksThisSec << endl;
-		//m_path->showPath();
+		m_path->showPath();
 		
 		m_ticksThisSec = 0;
 	}
@@ -159,12 +160,13 @@ int StudentWorld::move()
 	{
 		m_ticksThisSec++;
 	}
+	*/
 
 	setGameStatText(getGameText());
 
 	if (!m_player->isAlive() || m_hitESC)
 	{
-		//decLives();
+		decLives();
 
 		playSound(SOUND_PLAYER_GIVE_UP);
 
@@ -176,7 +178,7 @@ int StudentWorld::move()
 		{
 			return GWSTATUS_FINISHED_LEVEL;
 		}
-
+		
 		if (m_worldAge == 0 || m_ticksSinceLastProtesterAdded == m_minTicksBetweenProtesterSpawn)
 		{
 			if (rand() % m_chanceHardcore == 0)
@@ -194,7 +196,7 @@ int StudentWorld::move()
 		{
 			m_ticksSinceLastProtesterAdded++;
 		}
-
+		
 		if (rand() % m_itemSpawnChance == 0)
 		{
 			spawnGoodie();
@@ -387,7 +389,7 @@ double StudentWorld::getDistSquared(double x1, double y1, double x2, double y2)
 
 int StudentWorld::getDistSquared(Point p1, Point p2)
 {
-	return abs((p2.getX()- p1.getX()) * (p2.getX()- p1.getX()) + (p2.getY()- p1.getY()) * (p2.getY() - p1.getY()));
+	return abs((p2.m_x- p1.m_x) * (p2.m_x - p1.m_x) + (p2.m_y- p1.m_y) * (p2.m_y - p1.m_y));
 }
 
 IceManager* StudentWorld::getIceManager()
@@ -479,7 +481,7 @@ Ice*& IceManager::operator() (int x, int y)
 
 bool IceManager::clearIce(int x, int y)
 {
-	if (y + 3 > 63 || y < 0)
+	if (y > 60)
 	{
 		return false;
 	}
@@ -494,13 +496,14 @@ bool IceManager::clearIce(int x, int y)
 			{
 				Ice* temp = m_arr[64 * j + i];
 
-				if (temp != nullptr && !didMine)
+				if (temp != nullptr)
 				{
 					didMine = true;
+					
+					delete temp;
+					
+					m_arr[64 * j + i] = nullptr;
 				}
-
-				delete temp;
-				m_arr[64 * j + i] = nullptr;
 			}
 		}
 	}
@@ -509,11 +512,16 @@ bool IceManager::clearIce(int x, int y)
 
 bool IceManager::checkIce(int x, int y)
 {
+	if (x > 60 || y > 60)
+	{
+		return false;
+	}
+
 	for (int j = y; j < y + 4; j++)
 	{
 		for (int i = x; i < x + 4; i++)
 		{
-			if (m_arr[64 * j + i] != nullptr) 
+			if (m_arr[64 * j + i] != nullptr)
 			{
 				return false;
 			}
@@ -546,6 +554,8 @@ IceManager::~IceManager()
 			*/
 
 			delete m_arr[i];
+
+			m_arr[i] = nullptr;
 		}
 	}
 
@@ -584,9 +594,8 @@ void PathFinder::updateGrid()
 	{
 		for (int y = 0; y < 64; y++)
 		{
-			if (m_world->getIceManager()->checkIce(x, y)	&& 
-				!isalpha(m_pathToExit[x][y])			&&
-				m_pathToExit[x][y] != '@')
+			if (!isalpha(m_pathToExit[x][y]) && 
+				m_world->getIceManager()->checkIce(x, y))
 			{
 				m_pathToExit[x][y] = '#';
 				m_needsUpdating = true;
@@ -614,7 +623,7 @@ void PathFinder::buildPathToExit()
 	// start from the exit point for protesters
 	Point start = Point(60, 60);
 	
-	m_pathToExit[start.getX()][start.getY()] = 'E';
+	m_pathToExit[start.m_x][start.m_y] = 'E';
 
 	q.push(start);
 
@@ -627,25 +636,25 @@ void PathFinder::buildPathToExit()
 
 		if (adjPoints[GraphObject::Direction::left].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::left].getX()][adjPoints[GraphObject::Direction::left].getY()] = 'R';
+			m_pathToExit[adjPoints[GraphObject::Direction::left].m_x][adjPoints[GraphObject::Direction::left].m_y] = 'R';
 			q.push(adjPoints[GraphObject::Direction::left]);
 		}
 
 		if (adjPoints[GraphObject::Direction::up].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::up].getX()][adjPoints[GraphObject::Direction::up].getY()] = 'D';
+			m_pathToExit[adjPoints[GraphObject::Direction::up].m_x][adjPoints[GraphObject::Direction::up].m_y] = 'D';
 			q.push(adjPoints[GraphObject::Direction::up]);
 		}
 
 		if (adjPoints[GraphObject::Direction::right].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::right].getX()][adjPoints[GraphObject::Direction::right].getY()] = 'L';
+			m_pathToExit[adjPoints[GraphObject::Direction::right].m_x][adjPoints[GraphObject::Direction::right].m_y] = 'L';
 			q.push(adjPoints[GraphObject::Direction::right]);
 		}
 
 		if (adjPoints[GraphObject::Direction::down].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::down].getX()][adjPoints[GraphObject::Direction::down].getY()] = 'U';
+			m_pathToExit[adjPoints[GraphObject::Direction::down].m_x][adjPoints[GraphObject::Direction::down].m_y] = 'U';
 			q.push(adjPoints[GraphObject::Direction::down]);
 		}
 	}
@@ -676,7 +685,7 @@ bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
 			{
 				ch = m_pathToExit[i][a_y];
 
-				if (!(isalpha(ch) || ch == '#' || ch == '@'))
+				if (!(isalpha(ch) || ch == '#'))
 				{
 					return false;
 				}
@@ -693,7 +702,7 @@ bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
 			{
 				ch = m_pathToExit[a_x][j];
 
-				if (!(isalpha(ch) || ch == '#' || ch == '@'))
+				if (!(isalpha(ch) ||  ch == '#'))
 				{
 					return false;
 				}
@@ -742,25 +751,25 @@ void PathFinder::buildPathToPlayer()
 
 		if (adjPoints[GraphObject::Direction::left].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::left].getX()][adjPoints[GraphObject::Direction::left].getY()] = 'R';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::left].m_x][adjPoints[GraphObject::Direction::left].m_y] = 'R';
 			q.push(adjPoints[GraphObject::Direction::left]);
 		}
 
 		if (adjPoints[GraphObject::Direction::up].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::up].getX()][adjPoints[GraphObject::Direction::up].getY()] = 'D';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::up].m_x][adjPoints[GraphObject::Direction::up].m_y] = 'D';
 			q.push(adjPoints[GraphObject::Direction::up]);
 		}
 
 		if (adjPoints[GraphObject::Direction::right].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::right].getX()][adjPoints[GraphObject::Direction::right].getY()] = 'L';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::right].m_x][adjPoints[GraphObject::Direction::right].m_y] = 'L';
 			q.push(adjPoints[GraphObject::Direction::right]);
 		}
 
 		if (adjPoints[GraphObject::Direction::down].isValid())
 		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::down].getX()][adjPoints[GraphObject::Direction::down].getY()] = 'U';
+			m_pathToPlayer[adjPoints[GraphObject::Direction::down].m_x][adjPoints[GraphObject::Direction::down].m_y] = 'U';
 			q.push(adjPoints[GraphObject::Direction::down]);
 		}
 	}
@@ -790,28 +799,28 @@ Point* PathFinder::getValidAdjPoints(const Point p, bool isPathingOut)
 	
 	temp = p.getAdjLeft();
 
-	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
 		adjPoints[GraphObject::Direction::left] = temp;
 	}
 
 	temp = p.getAdjUp();
 	
-	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
 		adjPoints[GraphObject::Direction::up] = temp;
 	}
 
 	temp = p.getAdjRight();
 
-	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
 		adjPoints[GraphObject::Direction::right] = temp;
 	}
 
 	temp = p.getAdjDown();
 
-	if (temp.isValid() && m_grid[temp.getX()][temp.getY()] == '#')
+	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
 		adjPoints[GraphObject::Direction::down] = temp;
 	}
@@ -840,11 +849,11 @@ void PathFinder::showPath()
 
 	for (int y = 0; y < 64; y++)
 	{
-		cout << y << '\t';
+		cout << 63 - y << '\t';
 
 		for (int x = 0; x < 64; x++)
 		{
-			cout << m_pathToExit[x][y];
+			cout << m_pathToExit[x][63 - y];
 		}
 
 		cout << endl;
@@ -922,7 +931,7 @@ const string PathFinder::getValidDirections(Point p)
 	char ch;
 	
 	temp = p.getAdjUp();
-	ch = m_pathToExit[temp.getX()][temp.getY()];
+	ch = m_pathToExit[temp.m_x][temp.m_y];
 
 	if (isalpha(ch) || ch == '#')
 	{
@@ -930,7 +939,7 @@ const string PathFinder::getValidDirections(Point p)
 	}
 
 	temp = p.getAdjDown();
-	ch = m_pathToExit[temp.getX()][temp.getY()];
+	ch = m_pathToExit[temp.m_x][temp.m_y];
 
 	if (isalpha(ch) || ch == '#')
 	{
@@ -938,7 +947,7 @@ const string PathFinder::getValidDirections(Point p)
 	}
 
 	temp = p.getAdjLeft();
-	ch = m_pathToExit[temp.getX()][temp.getY()];
+	ch = m_pathToExit[temp.m_x][temp.m_y];
 
 	if (isalpha(ch) || ch == '#')
 	{
@@ -946,7 +955,7 @@ const string PathFinder::getValidDirections(Point p)
 	}
 
 	temp = p.getAdjRight();
-	ch = m_pathToExit[temp.getX()][temp.getY()];
+	ch = m_pathToExit[temp.m_x][temp.m_y];
 
 	if (isalpha(ch) || ch == '#')
 	{
