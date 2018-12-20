@@ -54,7 +54,7 @@ public:
 
 	void scan(double x, double y);
 
-	double getDistSquared(double x1, double y1, double x2, double y2);
+	int getDistSquared(double x1, double y1, double x2, double y2);
 
 	int getDistSquared(Point p1, Point p2);
 
@@ -131,8 +131,6 @@ public:
 
 	const std::string getPathToExitFrom(int x, int y);
 
-	const std::string getPathToPlayerFrom(int x, int y);
-
 	bool hasUnobstructedPathToPlayer(Actor * a);
 
 	void showPath();
@@ -145,23 +143,21 @@ public:
 
 	const std::string getValidPerpDirs(Point p, GraphObject::Direction dir);
 
+	GraphObject::Direction getAdjPointClosestToPlayer(Point& p);
+
 	bool isIntersection(const std::string s);
 
 	bool m_needsUpdating;
 
 private:
 	
-	Point* getValidAdjPoints(const Point p, bool isPathingOut = true);
+	Point* getValidAdjPoints(const Point p);
 	
 	StudentWorld* m_world;
 	
 	void buildPathToExit();
 
-	void buildPathToPlayer();
-
 	char m_pathToExit[64][64];
-
-	char m_pathToPlayer[64][64];
 };
 
 

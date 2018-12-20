@@ -903,74 +903,28 @@ void HardcoreProtester::pathTowardsPlayer()
 {
 	StudentWorld* world = getWorld();
 
-	m_pathToPlayer = world->getPathFinder()->getPathToPlayerFrom(getX(), getY());
+	Iceman* player = world->getPlayer();
 
-	if (m_pathToPlayer.length() <= m_maxPathSize)
-	{
-		if (!m_pathToPlayer.empty())
+	int distance = world->getDistSquared(getX(), getY(), player->getX(), player->getY());
+
+	if (distance <= 144)
+	{	
+		Point p = getBB().getXY();
+
+		Direction dir = world->getPathFinder()->getAdjPointClosestToPlayer(p);
+
+		if (dir != GraphObject::Direction::none)
 		{
-			char ch = m_pathToPlayer[0];
-
-			switch (ch)
-			{
-			case 'L':
-
-				if (getDirection() != left)
-				{
-					setDirection(left);
-				}
-
-				moveTo(getX() - 1, getY());
-
-				break;
-
-			case 'U':
-
-				if (getDirection() != up)
-				{
-					setDirection(up);
-				}
-
-				moveTo(getX(), getY() + 1);
-
-				break;
-
-			case 'R':
-
-				if (getDirection() != right)
-				{
-					setDirection(right);
-				}
-
-				moveTo(getX() + 1, getY());
-
-				break;
-
-			case 'D':
-
-				if (getDirection() != down)
-				{
-					setDirection(down);
-				}
-
-				moveTo(getX(), getY() - 1);
-
-				break;
-
-			case 'E':
-
-				setDead();
-
-				break;
-			}
-
-			m_pathToPlayer = m_pathToPlayer.substr(1);
-			return;
+			setDirection(dir);
 		}
+
+		moveTo(p.m_x, p.m_y);
+
+		return;
 	}
 	else
 	{
-		m_pathToPlayer.clear();
+		//m_pathToPlayer.clear();
 
 		if (world->getPathFinder()->hasUnobstructedPathToPlayer(this))
 		{

@@ -42,6 +42,8 @@ int StudentWorld::init()
 
 	m_itemSpawnChance = curLevel * 25 + 300;
 
+	m_chanceHardcore = min(90, curLevel * 10 + 30);
+
 	m_hitESC = false;
 
 	bool isTooClose;
@@ -161,7 +163,6 @@ int StudentWorld::move()
 		m_ticksThisSec++;
 	}
 	*/
-
 	setGameStatText(getGameText());
 
 	if (!m_player->isAlive() || m_hitESC)
@@ -181,13 +182,13 @@ int StudentWorld::move()
 		
 		if (m_worldAge == 0 || m_ticksSinceLastProtesterAdded == m_minTicksBetweenProtesterSpawn)
 		{
-			if (rand() % m_chanceHardcore == 0)
+			if (rand() % 100 <= m_chanceHardcore)
 			{
 				m_listActors.push_back(new HardcoreProtester());
 			}
 			else
 			{
-				m_listActors.push_back(new RegularProtester());
+				//m_listActors.push_back(new RegularProtester());
 			}
 
 			m_ticksSinceLastProtesterAdded = 0;
@@ -218,7 +219,8 @@ int StudentWorld::move()
 				m_listActors.back() = m_listActors[i];
 				m_listActors[i] = temp;
 
-				delete m_listActors.back(), m_listActors.pop_back();
+				delete m_listActors.back();
+				m_listActors.pop_back();
 			}
 		}
 	}
@@ -232,7 +234,8 @@ void StudentWorld::cleanUp()
 {
 	while (!m_listActors.empty())
 	{
-		delete m_listActors.back(), m_listActors.pop_back();
+		delete m_listActors.back();
+		m_listActors.pop_back();
 	}
 
 	delete m_player;
@@ -295,7 +298,7 @@ void StudentWorld::acceptActor(Actor* a)
 
 void StudentWorld::placePathTester(int x, int y)
 {
-	m_listActors.push_back(new RegularProtester(x, y));
+	m_listActors.push_back(new HardcoreProtester(x, y));
 
 	m_listActors.back()->takeDamage(Actor::DamageSource::rockFall);
 }
@@ -382,7 +385,7 @@ bool StudentWorld::isValidSpawnLocation(int x, int y)
 	return true;
 }
 
-double StudentWorld::getDistSquared(double x1, double y1, double x2, double y2) 
+int StudentWorld::getDistSquared(double x1, double y1, double x2, double y2) 
 {
 	return abs((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
@@ -717,67 +720,7 @@ bool PathFinder::hasUnobstructedPathToPlayer(Actor* a)
 	return true;
 }
 
-void PathFinder::buildPathToPlayer()
-{
-	for (int x = 0; x < 64; x++)
-	{
-		for (int y = 0; y < 64; y++)
-		{
-			m_pathToPlayer[x][y] = m_pathToExit[x][y] != ' ' ? '#' : ' ';
-		}
-	}
-
-	int x = m_world->getPlayer()->getX();
-	int y = m_world->getPlayer()->getY();
-
-	queue<Point> q;
-
-	// start at the player and build outwards
-	
-	m_pathToPlayer[x][y] = 'P';
-
-	Point player = Point(x, y);
-
-	q.push(player);
-
-	Point* adjPoints;
-
-	while (!q.empty())
-	{
-		Point current = q.front();
-		q.pop();
-
-		adjPoints = getValidAdjPoints(current, false);
-
-		if (adjPoints[GraphObject::Direction::left].isValid())
-		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::left].m_x][adjPoints[GraphObject::Direction::left].m_y] = 'R';
-			q.push(adjPoints[GraphObject::Direction::left]);
-		}
-
-		if (adjPoints[GraphObject::Direction::up].isValid())
-		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::up].m_x][adjPoints[GraphObject::Direction::up].m_y] = 'D';
-			q.push(adjPoints[GraphObject::Direction::up]);
-		}
-
-		if (adjPoints[GraphObject::Direction::right].isValid())
-		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::right].m_x][adjPoints[GraphObject::Direction::right].m_y] = 'L';
-			q.push(adjPoints[GraphObject::Direction::right]);
-		}
-
-		if (adjPoints[GraphObject::Direction::down].isValid())
-		{
-			m_pathToPlayer[adjPoints[GraphObject::Direction::down].m_x][adjPoints[GraphObject::Direction::down].m_y] = 'U';
-			q.push(adjPoints[GraphObject::Direction::down]);
-		}
-	}
-
-	delete[] adjPoints;
-}
-
-Point* PathFinder::getValidAdjPoints(const Point p, bool isPathingOut)
+Point* PathFinder::getValidAdjPoints(const Point p)
 {
 	// array is of size 5 because I chose to use literal enum 
 	// values in order to determine the direction the path
@@ -789,7 +732,7 @@ Point* PathFinder::getValidAdjPoints(const Point p, bool isPathingOut)
 	{
 		for (int y = 0; y < 64; y++)
 		{
-			m_grid[x][y] = isPathingOut ? m_pathToExit[x][y] : m_pathToPlayer[x][y];
+			m_grid[x][y] = m_pathToExit[x][y];
 		}
 	}
 
@@ -865,34 +808,6 @@ bool PathFinder::isValidLocation(int x, int y)
 	return m_pathToExit[x][y] != ' ';
 }
 
-const string PathFinder::getPathToPlayerFrom(int x, int y)
-{
-	buildPathToPlayer();
-
-	ostringstream oss;
-
-	do
-	{
-		switch (m_pathToPlayer[x][y])
-		{
-		case 'L':
-			oss << m_pathToPlayer[x--][y];
-			break;
-		case 'U':
-			oss << m_pathToPlayer[x][y++];
-			break;
-		case 'R':
-			oss << m_pathToPlayer[x++][y];
-			break;
-		case 'D':
-			oss << m_pathToPlayer[x][y--];
-			break;
-		}
-	} while (m_pathToPlayer[x][y] != 'P');
-
-	return oss.str();
-}
-
 const string PathFinder::getPathToExitFrom(int x, int y)
 {
 	if (m_needsUpdating)
@@ -931,35 +846,47 @@ const string PathFinder::getValidDirections(Point p)
 	char ch;
 	
 	temp = p.getAdjUp();
-	ch = m_pathToExit[temp.m_x][temp.m_y];
-
-	if (isalpha(ch) || ch == '#')
+	if (temp.isValid())
 	{
-		retVal += 'U';
+		ch = m_pathToExit[temp.m_x][temp.m_y];
+
+		if (isalpha(ch) || ch == '#')
+		{
+			retVal += 'U';
+		}
 	}
 
 	temp = p.getAdjDown();
-	ch = m_pathToExit[temp.m_x][temp.m_y];
-
-	if (isalpha(ch) || ch == '#')
+	if (temp.isValid())
 	{
-		retVal += 'D';
+		ch = m_pathToExit[temp.m_x][temp.m_y];
+
+		if (isalpha(ch) || ch == '#')
+		{
+			retVal += 'D';
+		}
 	}
 
 	temp = p.getAdjLeft();
-	ch = m_pathToExit[temp.m_x][temp.m_y];
-
-	if (isalpha(ch) || ch == '#')
+	if (temp.isValid())
 	{
-		retVal += 'L';
+		ch = m_pathToExit[temp.m_x][temp.m_y];
+
+		if (isalpha(ch) || ch == '#')
+		{
+			retVal += 'L';
+		}
 	}
 
 	temp = p.getAdjRight();
-	ch = m_pathToExit[temp.m_x][temp.m_y];
-
-	if (isalpha(ch) || ch == '#')
+	if (temp.isValid())
 	{
-		retVal += 'R';
+		ch = m_pathToExit[temp.m_x][temp.m_y];
+
+		if (isalpha(ch) || ch == '#')
+		{
+			retVal += 'R';
+		}
 	}
 
 	return retVal;
@@ -1011,6 +938,104 @@ const string PathFinder::getValidPerpDirs(Point p, GraphObject::Direction dir)
 			retVal += 'D';
 		}
 
+		break;
+	}
+
+	return retVal;
+}
+
+GraphObject::Direction PathFinder::getAdjPointClosestToPlayer(Point &p)
+{
+	StudentWorld* world = StudentWorld::getInstance();
+	Iceman* player = world->getPlayer();
+
+	Point temp;
+
+	char ch;
+
+	GraphObject::Direction retVal = GraphObject::Direction::none;
+
+	string protesterToExit = getPathToExitFrom(p.m_x, p.m_y);
+	string playerToExit = getPathToExitFrom(player->getX(), player->getY());
+
+	auto playerIter = playerToExit.end();
+	auto protestIter = protesterToExit.end();
+
+	if (protesterToExit.length() > 0)
+	{
+		protestIter--;
+	}
+
+	if (playerToExit.length() > 0)
+	{
+		playerIter--;
+	}
+
+	bool empty;
+
+	do
+	{
+		empty = playerIter == playerToExit.begin() ||
+			protestIter == protesterToExit.begin();
+
+		if (!empty)
+		{
+			if (*playerIter == *protestIter)
+			{
+				playerIter--;
+				protestIter--;
+			}
+			else
+			{
+				break;
+			}
+		}
+	} while (!empty);
+
+	playerIter--;
+
+	if (protestIter != protesterToExit.begin())
+	{
+		ch = *protestIter;
+	}
+	else
+	{
+		ch = *playerIter;
+
+		switch (ch)
+		{
+		case 'U':
+			ch = 'D';
+			break;
+		case 'D':
+			ch = 'U';
+			break;
+		case 'L':
+			ch = 'R';
+			break;
+		case 'R':
+			ch = 'L';
+			break;
+		}
+	}
+
+	switch (ch)
+	{
+	case 'U':
+		retVal = GraphObject::Direction::up;
+		p.m_y++;
+		break;
+	case 'D':
+		retVal = GraphObject::Direction::down;
+		p.m_y--;
+		break;
+	case 'L':
+		retVal = GraphObject::Direction::left;
+		p.m_x--;
+		break;
+	case 'R':
+		retVal = GraphObject::Direction::right;
+		p.m_x++;
 		break;
 	}
 
