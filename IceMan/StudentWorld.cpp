@@ -188,7 +188,7 @@ int StudentWorld::move()
 			}
 			else
 			{
-				//m_listActors.push_back(new RegularProtester());
+				m_listActors.push_back(new RegularProtester());
 			}
 
 			m_ticksSinceLastProtesterAdded = 0;
@@ -996,7 +996,7 @@ GraphObject::Direction PathFinder::getAdjPointClosestToPlayer(Point &p)
 
 	if (protestIter != protesterToExit.begin())
 	{
-		ch = *protestIter;
+		ch = protesterToExit[0];
 	}
 	else
 	{
