@@ -589,6 +589,8 @@ PathFinder::PathFinder(StudentWorld* world) : m_world(world), m_needsUpdating(tr
 	int y = 60;
 
 	m_pathToExit[x][y] = 'E';
+
+	maxPathLength = world->getLevel();
 }
 
 void PathFinder::updateGrid()
@@ -944,7 +946,8 @@ const string PathFinder::getValidPerpDirs(Point p, GraphObject::Direction dir)
 	return retVal;
 }
 
-GraphObject::Direction PathFinder::getAdjPointClosestToPlayer(Point &p)
+GraphObject::Direction PathFinder::getAdjPointClosestToPlayer(	Point &p, 
+																GraphObject::Direction cur)
 {
 	StudentWorld* world = StudentWorld::getInstance();
 	Iceman* player = world->getPlayer();
@@ -953,87 +956,50 @@ GraphObject::Direction PathFinder::getAdjPointClosestToPlayer(Point &p)
 
 	char ch;
 
-	GraphObject::Direction retVal = GraphObject::Direction::none;
+	GraphObject::Direction retVal = cur;
 
 	string protesterToExit = getPathToExitFrom(p.m_x, p.m_y);
 	string playerToExit = getPathToExitFrom(player->getX(), player->getY());
 
-	auto playerIter = playerToExit.end();
-	auto protestIter = protesterToExit.end();
-
-	if (protesterToExit.length() > 0)
+	while (!protesterToExit.empty() && !playerToExit.empty())
 	{
-		protestIter--;
-	}
-
-	if (playerToExit.length() > 0)
-	{
-		playerIter--;
-	}
-
-	bool empty;
-
-	do
-	{
-		empty = playerIter == playerToExit.begin() ||
-			protestIter == protesterToExit.begin();
-
-		if (!empty)
+		if (protesterToExit.back() == playerToExit.back())
 		{
-			if (*playerIter == *protestIter)
-			{
-				playerIter--;
-				protestIter--;
-			}
-			else
-			{
-				break;
-			}
+			protesterToExit.pop_back();
+			playerToExit.pop_back();
 		}
-	} while (!empty);
+		else
+		{
+			break;
+		}
+	} 
 
-	playerIter--;
+	int pathLength = protesterToExit.length() + playerToExit.length();
 
-	if (protestIter != protesterToExit.begin())
+	if (pathLength < maxPathLength)
 	{
-		ch = protesterToExit[0];
+		ch = protesterToExit.length() > playerToExit.length() ? protesterToExit.front() : playerToExit.back();
 	}
 	else
 	{
-		ch = *playerIter;
-
-		switch (ch)
-		{
-		case 'U':
-			ch = 'D';
-			break;
-		case 'D':
-			ch = 'U';
-			break;
-		case 'L':
-			ch = 'R';
-			break;
-		case 'R':
-			ch = 'L';
-			break;
-		}
+		return GraphObject::Direction::none;
 	}
 
 	switch (ch)
 	{
-	case 'U':
+	case 'D':
 		retVal = GraphObject::Direction::up;
 		p.m_y++;
 		break;
-	case 'D':
+	case 'U':
 		retVal = GraphObject::Direction::down;
 		p.m_y--;
 		break;
-	case 'L':
+	case 'R':
 		retVal = GraphObject::Direction::left;
 		p.m_x--;
 		break;
-	case 'R':
+	case 'L':
 		retVal = GraphObject::Direction::right;
 		p.m_x++;
 		break;

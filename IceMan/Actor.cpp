@@ -682,44 +682,37 @@ void Protester::doSomething()
 				return;
 			}
 		}
-
-		if (m_stunTicksLeft == 0)
+		else
 		{
-			/*	added additional bounding box to check for the player,
-			*	because the protesters don't need to be shouting in the
-			*	iceman's ear.
-			*/
-
-			BoundingBox BB = BoundingBox(getX() - 1, getY() - 1, 6);
-
-			Actor* collidedWith = world->collisionWith(this, BB);
-			Iceman* player = world->getPlayer();
-
-			if (m_nonShoutingActions >= 15 && (*&collidedWith == *&player))
+			if (m_stunTicksLeft == 0)
 			{
-				if (isFacing(collidedWith))
-				{
-					world->playSound(SOUND_PROTESTER_YELL);
-					player->takeDamage(DamageSource::protest);
+				Iceman* player = world->getPlayer();
 
-					m_nonShoutingActions = 0;
-					return;
+				int distToPlayer = world->getDistSquared(getBB().getXY(), player->getBB().getXY());
+
+				if (m_nonShoutingActions >= 15 && distToPlayer <= 25)
+				{
+					if (isFacing(player) && world->getPathFinder()->hasUnobstructedPathToPlayer(this))
+					{
+						world->playSound(SOUND_PROTESTER_YELL);
+						player->takeDamage(DamageSource::protest);
+
+						m_nonShoutingActions = 0;
+						return;
+					}
 				}
+				
+				m_nonShoutingActions++;	
+				pathTowardsPlayer();
 			}
 			else
 			{
-				m_nonShoutingActions++;
+				if (m_stunTicksLeft > 0)
+				{
+					m_stunTicksLeft--;
+				}
+				return;
 			}
-			
-			pathTowardsPlayer();
-		}
-		else
-		{
-			if (m_stunTicksLeft > 0)
-			{
-				m_stunTicksLeft--;
-			}
-			return;
 		}
 	}
 }
@@ -907,115 +900,109 @@ void HardcoreProtester::pathTowardsPlayer()
 
 	int distance = world->getDistSquared(getX(), getY(), player->getX(), player->getY());
 
-	if (distance <= 144)
+	if (distance <= 144 && m_nonShoutingActions > 15)
 	{	
 		Point p = getBB().getXY();
 
-		Direction dir = world->getPathFinder()->getAdjPointClosestToPlayer(p);
+		Direction dir = world->getPathFinder()->getAdjPointClosestToPlayer(p, getDirection());
 
 		if (dir != GraphObject::Direction::none)
 		{
 			setDirection(dir);
-		}
+			moveTo(p.m_x, p.m_y);
+			return;
+		}	
+	}
 
-		moveTo(p.m_x, p.m_y);
+	if (world->getPathFinder()->hasUnobstructedPathToPlayer(this))
+	{
+		faceTowards(getWorld()->getPlayer());
+
+		Direction dir = getDirection();
+
+		moveTo(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+				getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+		m_stepsInCurrDir = 0;
 
 		return;
 	}
 	else
 	{
-		//m_pathToPlayer.clear();
+		Direction dir = getDirection();
 
-		if (world->getPathFinder()->hasUnobstructedPathToPlayer(this))
+		Point newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+							getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+		string validDirs = getWorld()->getPathFinder()->getValidDirections(getBB().getXY());
+
+		bool isXRoad = getWorld()->getPathFinder()->isIntersection(validDirs);
+
+		if (m_stepsInCurrDir == 0 || !(newXY.isInBounds()))
 		{
-			faceTowards(getWorld()->getPlayer());
+			char ch = validDirs[rand() % validDirs.length()];
 
-			Direction dir = getDirection();
+			switch (ch)
+			{
+			case 'U':
+				setDirection(up);
+				break;
+			case 'D':
+				setDirection(down);
+				break;
+			case 'L':
+				setDirection(left);
+				break;
+			case 'R':
+				setDirection(right);
+				break;
+			}
 
-			moveTo(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-				   getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+			m_stepsInCurrDir = rand() % 52 + 8;
+		}
+		else if (isXRoad && m_ticksSinceAxisSwap >= 50)
+		{
+			validDirs = getWorld()->getPathFinder()->getValidPerpDirs(getBB().getXY(), dir);
 
-			m_stepsInCurrDir = 0;
+			char ch = validDirs[rand() % validDirs.length()];
 
-			return;
+			switch (ch)
+			{
+			case 'U':
+				setDirection(up);
+				break;
+			case 'D':
+				setDirection(down);
+				break;
+			case 'L':
+				setDirection(left);
+				break;
+			case 'R':
+				setDirection(right);
+				break;
+			}
+
+			m_stepsInCurrDir = rand() % 52 + 8;
+
+			m_ticksSinceAxisSwap = 0;
+		}
+
+		dir = getDirection();
+
+		newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
+						getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+
+		if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.m_x, newXY.m_y))
+		{
+			moveTo(newXY.m_x, newXY.m_y);
+
+			m_stepsInCurrDir--;
+
+			m_ticksSinceAxisSwap++;
 		}
 		else
 		{
-			Direction dir = getDirection();
-
-			Point newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-								getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
-
-			string validDirs = getWorld()->getPathFinder()->getValidDirections(getBB().getXY());
-
-			bool isXRoad = getWorld()->getPathFinder()->isIntersection(validDirs);
-
-			if (m_stepsInCurrDir == 0 || !(newXY.isInBounds()))
-			{
-				char ch = validDirs[rand() % validDirs.length()];
-
-				switch (ch)
-				{
-				case 'U':
-					setDirection(up);
-					break;
-				case 'D':
-					setDirection(down);
-					break;
-				case 'L':
-					setDirection(left);
-					break;
-				case 'R':
-					setDirection(right);
-					break;
-				}
-
-				m_stepsInCurrDir = rand() % 52 + 8;
-			}
-			else if (isXRoad && m_ticksSinceAxisSwap >= 50)
-			{
-				validDirs = getWorld()->getPathFinder()->getValidPerpDirs(getBB().getXY(), dir);
-
-				char ch = validDirs[rand() % validDirs.length()];
-
-				switch (ch)
-				{
-				case 'U':
-					setDirection(up);
-					break;
-				case 'D':
-					setDirection(down);
-					break;
-				case 'L':
-					setDirection(left);
-					break;
-				case 'R':
-					setDirection(right);
-					break;
-				}
-
-				m_stepsInCurrDir = rand() % 52 + 8;
-
-				m_ticksSinceAxisSwap = 0;
-			}
-
-			dir = getDirection();
-
-			newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-				getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
-
-			if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.m_x, newXY.m_y))
-			{
-				moveTo(newXY.m_x, newXY.m_y);
-
-				m_stepsInCurrDir--;
-
-				m_ticksSinceAxisSwap++;
-			}
-			else
-			{
-				m_stepsInCurrDir = 0;
-			}
+			m_stepsInCurrDir = 0;
 		}
 	}
 }

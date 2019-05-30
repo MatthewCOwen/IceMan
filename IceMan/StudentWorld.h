@@ -143,7 +143,7 @@ public:
 
 	const std::string getValidPerpDirs(Point p, GraphObject::Direction dir);
 
-	GraphObject::Direction getAdjPointClosestToPlayer(Point& p);
+	GraphObject::Direction getAdjPointClosestToPlayer(Point& p, GraphObject::Direction cur);
 
 	bool isIntersection(const std::string s);
 
@@ -158,6 +158,8 @@ private:
 	void buildPathToExit();
 
 	char m_pathToExit[64][64];
+
+	int maxPathLength;
 };
 
 
