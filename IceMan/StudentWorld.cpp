@@ -219,11 +219,6 @@ int StudentWorld::move()
 	} 
 	while (span.count() < TIME_PER_TICK);
 
-	ostringstream oss;
-
-	oss << "time per tick: " << span.count();
-	setGameStatText(oss.str());
-	
 	return GWSTATUS_CONTINUE_GAME;
 }
 
