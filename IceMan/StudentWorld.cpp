@@ -5,6 +5,9 @@
 #include <iomanip>
 #include <queue>
 #include <ctype.h>
+#include <chrono>
+
+typedef std::chrono::high_resolution_clock Clock;
 
 using namespace std;
 
@@ -17,7 +20,7 @@ GameWorld* createStudentWorld(string assetDir)
 
 StudentWorld* StudentWorld::world;
 
-StudentWorld::StudentWorld(string assetDir) :	GameWorld(assetDir)
+StudentWorld::StudentWorld(string assetDir) : GameWorld(assetDir)
 {
 	world = this;
 
@@ -28,9 +31,6 @@ StudentWorld::StudentWorld(string assetDir) :	GameWorld(assetDir)
 
 int StudentWorld::init() 
 {
-	m_currTime = static_cast<unsigned int>(time(nullptr));
-	m_ticksThisSec = 0;
-
 	int curLevel = getLevel();
 	m_worldAge = 0;
 	
@@ -145,24 +145,8 @@ int StudentWorld::init()
 
 int StudentWorld::move()
 {
-	/*
-	unsigned int t = static_cast<unsigned int>(time(nullptr));
+	auto t1 = Clock::now();
 
-	if (m_currTime != t)
-	{
-		m_currTime = t;		
-		
-		system("cls");
-		cout << m_ticksThisSec << endl;
-		m_path->showPath();
-		
-		m_ticksThisSec = 0;
-	}
-	else
-	{
-		m_ticksThisSec++;
-	}
-	*/
 	setGameStatText(getGameText());
 
 	if (!m_player->isAlive() || m_hitESC)
@@ -179,7 +163,7 @@ int StudentWorld::move()
 		{
 			return GWSTATUS_FINISHED_LEVEL;
 		}
-		
+
 		if (m_worldAge == 0 || m_ticksSinceLastProtesterAdded == m_minTicksBetweenProtesterSpawn)
 		{
 			if (rand() % 100 <= m_chanceHardcore)
@@ -197,14 +181,14 @@ int StudentWorld::move()
 		{
 			m_ticksSinceLastProtesterAdded++;
 		}
-		
+
 		if (rand() % m_itemSpawnChance == 0)
 		{
 			spawnGoodie();
 		}
-		
+
 		m_player->move();
-		
+
 		for (unsigned int i = 0; i < m_listActors.size(); i++)
 		{
 			m_listActors[i]->move();
@@ -226,7 +210,15 @@ int StudentWorld::move()
 	}
 
 	m_worldAge++;
-	
+	chrono::duration<double> span;
+
+	do
+	{
+		auto t2 = Clock::now();
+		span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+	} 
+	while (span.count() < 0.05);
+
 	return GWSTATUS_CONTINUE_GAME;
 }
 
