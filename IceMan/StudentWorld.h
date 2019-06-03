@@ -10,6 +10,8 @@
 #include <vector>
 #include <ctime>
 
+#define TIME_PER_TICK 0.025
+
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
 
 class IceManager;

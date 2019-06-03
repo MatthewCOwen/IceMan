@@ -379,6 +379,10 @@ void Iceman::doSomething()
 
 					moveTo(getX() - 1, getY());
 				}
+				else
+				{
+					moveTo(getX(), getY());
+				}
 				break;
 
 			case KEY_PRESS_UP:
@@ -409,6 +413,11 @@ void Iceman::doSomething()
 
 					moveTo(getX(), getY() + 1);
 				}
+				else
+				{
+					moveTo(getX(), getY());
+				}
+
 				break;
 
 			case KEY_PRESS_RIGHT:
@@ -439,6 +448,10 @@ void Iceman::doSomething()
 
 					moveTo(getX() + 1, getY());
 				}
+				else
+				{
+					moveTo(getX(), getY());
+				}
 				break;
 
 			case KEY_PRESS_DOWN:
@@ -468,6 +481,10 @@ void Iceman::doSomething()
 					}
 
 					moveTo(getX(), getY() - 1);
+				}
+				else
+				{
+					moveTo(getX(), getY());
 				}
 				break;
 			

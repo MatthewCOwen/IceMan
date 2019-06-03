@@ -211,14 +211,19 @@ int StudentWorld::move()
 
 	m_worldAge++;
 	chrono::duration<double> span;
-
+	
 	do
 	{
 		auto t2 = Clock::now();
 		span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
 	} 
-	while (span.count() < 0.05);
+	while (span.count() < TIME_PER_TICK);
 
+	ostringstream oss;
+
+	oss << "time per tick: " << span.count();
+	setGameStatText(oss.str());
+	
 	return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -631,28 +636,28 @@ void PathFinder::buildPathToExit()
 
 		adjPoints = getValidAdjPoints(current);
 
-		if (adjPoints[GraphObject::Direction::left].isValid())
+		if (adjPoints[GraphObject::left].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::left].m_x][adjPoints[GraphObject::Direction::left].m_y] = 'R';
-			q.push(adjPoints[GraphObject::Direction::left]);
+			m_pathToExit[adjPoints[GraphObject::left].m_x][adjPoints[GraphObject::left].m_y] = 'R';
+			q.push(adjPoints[GraphObject::left]);
 		}
 
-		if (adjPoints[GraphObject::Direction::up].isValid())
+		if (adjPoints[GraphObject::up].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::up].m_x][adjPoints[GraphObject::Direction::up].m_y] = 'D';
-			q.push(adjPoints[GraphObject::Direction::up]);
+			m_pathToExit[adjPoints[GraphObject::up].m_x][adjPoints[GraphObject::up].m_y] = 'D';
+			q.push(adjPoints[GraphObject::up]);
 		}
 
-		if (adjPoints[GraphObject::Direction::right].isValid())
+		if (adjPoints[GraphObject::right].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::right].m_x][adjPoints[GraphObject::Direction::right].m_y] = 'L';
-			q.push(adjPoints[GraphObject::Direction::right]);
+			m_pathToExit[adjPoints[GraphObject::right].m_x][adjPoints[GraphObject::right].m_y] = 'L';
+			q.push(adjPoints[GraphObject::right]);
 		}
 
-		if (adjPoints[GraphObject::Direction::down].isValid())
+		if (adjPoints[GraphObject::down].isValid())
 		{
-			m_pathToExit[adjPoints[GraphObject::Direction::down].m_x][adjPoints[GraphObject::Direction::down].m_y] = 'U';
-			q.push(adjPoints[GraphObject::Direction::down]);
+			m_pathToExit[adjPoints[GraphObject::down].m_x][adjPoints[GraphObject::down].m_y] = 'U';
+			q.push(adjPoints[GraphObject::down]);
 		}
 	}
 
@@ -738,28 +743,28 @@ Point* PathFinder::getValidAdjPoints(const Point p)
 
 	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
-		adjPoints[GraphObject::Direction::left] = temp;
+		adjPoints[GraphObject::left] = temp;
 	}
 
 	temp = p.getAdjUp();
 	
 	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
-		adjPoints[GraphObject::Direction::up] = temp;
+		adjPoints[GraphObject::up] = temp;
 	}
 
 	temp = p.getAdjRight();
 
 	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
-		adjPoints[GraphObject::Direction::right] = temp;
+		adjPoints[GraphObject::right] = temp;
 	}
 
 	temp = p.getAdjDown();
 
 	if (temp.isValid() && m_grid[temp.m_x][temp.m_y] == '#')
 	{
-		adjPoints[GraphObject::Direction::down] = temp;
+		adjPoints[GraphObject::down] = temp;
 	}
 
 	return adjPoints;
@@ -896,8 +901,8 @@ const string PathFinder::getValidPerpDirs(Point p, GraphObject::Direction dir)
 
 	switch (dir)
 	{
-	case GraphObject::Direction::up:
-	case GraphObject::Direction::down:
+	case GraphObject::up:
+	case GraphObject::down:
 		
 		pos = validDirs.find('L');
 
@@ -915,8 +920,8 @@ const string PathFinder::getValidPerpDirs(Point p, GraphObject::Direction dir)
 
 		break;
 	
-	case GraphObject::Direction::left:
-	case GraphObject::Direction::right:
+	case GraphObject::left:
+	case GraphObject::right:
 
 		pos = validDirs.find('U');
 
@@ -974,25 +979,25 @@ GraphObject::Direction PathFinder::getAdjPointClosestToPlayer(	Point &p,
 	}
 	else
 	{
-		return GraphObject::Direction::none;
+		return GraphObject::none;
 	}
 
 	switch (ch)
 	{
 	case 'D':
-		retVal = GraphObject::Direction::up;
+		retVal = GraphObject::up;
 		p.m_y++;
 		break;
 	case 'U':
-		retVal = GraphObject::Direction::down;
+		retVal = GraphObject::down;
 		p.m_y--;
 		break;
 	case 'R':
-		retVal = GraphObject::Direction::left;
+		retVal = GraphObject::left;
 		p.m_x--;
 		break;
 	case 'L':
-		retVal = GraphObject::Direction::right;
+		retVal = GraphObject::right;
 		p.m_x++;
 		break;
 	}
