@@ -9,12 +9,15 @@
 
 using namespace std;
 
-Point::Point(int x, int y) : m_x(x), m_y(y) 
+Point::Point(	int x, 
+				int y) :	m_x(x), 
+							m_y(y) 
 {
 
 }
 
-Point::Point(const Point& p) : m_x(p.m_x), m_y(p.m_y)
+Point::Point(const Point& p) :	m_x(p.m_x), 
+								m_y(p.m_y)
 {
 
 }
@@ -158,16 +161,26 @@ BoundingBox::~BoundingBox()
 
 }
 
-Actor::Actor(int imageID, int startX, int startY,
-			 Direction dir, double size,
-			 unsigned int depth, int health, 
-			 bool isDamageable, bool isPassable) :	GraphObject(imageID, startX, startY, dir, size, depth),
-													m_BB(BoundingBox(startX, startY)),
-													m_isPassable(isPassable),
-													m_isDamageable(isDamageable),
-													m_health(health),
-													m_isAlive(true),
-													m_ticksAlive(0)
+Actor::Actor(	int imageID, 
+				int startX, 
+				int startY,
+				Direction dir, 
+				double size,
+				unsigned int depth, 
+				int health, 
+				bool isDamageable, 
+				bool isPassable	) :	GraphObject(imageID, 
+												startX, 
+												startY, 
+												dir, 
+												size, 
+												depth),
+									m_BB(BoundingBox(startX, startY)),
+									m_isPassable(isPassable),
+									m_isDamageable(isDamageable),
+									m_health(health),
+									m_isAlive(true),
+									m_ticksAlive(0)
 {
 
 }
@@ -325,13 +338,26 @@ Actor::~Actor()
 
 // Iceman
 
-Iceman::Iceman(int imageID, int startX, int startY, 
-			   Direction dir, double size, 
-			   unsigned int depth, int health,
-			   bool isDamageable, bool isPassable) :	Actor(imageID, startX, startY, dir, size, depth, health, isDamageable, isPassable),
-														m_numSonarKits(1),
-														m_numGoldNuggets(0),
-														m_numSquirts(5)
+Iceman::Iceman(	int imageID, 
+				int startX, 
+				int startY, 
+				Direction dir, 
+				double size, 
+				unsigned int depth, 
+				int health,
+				bool isDamageable, 
+				bool isPassable) :	Actor(	imageID, 
+											startX, 
+											startY, 
+											dir, 
+											size, 
+											depth, 
+											health, 
+											isDamageable, 
+											isPassable	),
+									m_numSonarKits(1),
+									m_numGoldNuggets(0),
+									m_numSquirts(5)
 {
 	setVisible(true);
 }
@@ -497,7 +523,7 @@ void Iceman::doSomething()
 					Direction dir = getDirection();
 
 					int squirtX = getX() + (dir == left || dir == right ? (dir == left ? -4 : 4) : 0);
-					int squirtY = getY() + (dir == down || dir == up ? (dir == down ? -4 : 4) : 0);
+					int squirtY = getY() + (dir == down || dir == up	? (dir == down ? -4 : 4) : 0);
 					
 					if (squirtX < 0 || squirtX > 63 || squirtY < 0 || squirtY > 63)
 					{
@@ -611,13 +637,23 @@ Iceman::~Iceman()
 
 // Protester
 
-Protester::Protester(int imageID, int health,
-					 int x, int y) :	Actor(imageID, x, y, left, SIZE_NORMAL, 0, health, true, true),
-										m_state(InOilField),
-										m_nonShoutingActions(0),
-										m_stunTicksLeft(0),
-										m_ticksSinceAxisSwap(0),
-										m_pathOut("")
+Protester::Protester(	int imageID, 
+						int health,
+						int x, 
+						int y) :	Actor(	imageID, 
+											x, 
+											y, 
+											left, 
+											SIZE_NORMAL, 
+											0, 
+											health, 
+											true, 
+											true	),
+									m_state(InOilField),
+									m_nonShoutingActions(0),
+									m_stunTicksLeft(0),
+									m_ticksSinceAxisSwap(0),
+									m_pathOut("")
 {
 	setVisible(true);
 	m_restingTickCount = max(0, 3 - (int)getWorld()->getLevel() / 4);
@@ -793,8 +829,8 @@ void RegularProtester::pathTowardsPlayer()
 
 		Direction dir = getDirection();
 		
-		moveTo(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-			   getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+		moveTo(	getX() + (dir == left || dir == right	?	(dir == left ? -1 : 1) : 0),
+				getY() + (dir == down || dir == up		?	(dir == down ? -1 : 1) : 0));
 
 		m_stepsInCurrDir = 0;
 
@@ -863,7 +899,7 @@ void RegularProtester::pathTowardsPlayer()
 		dir = getDirection();
 		
 		newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-					  getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+					  getY() + (dir == down || dir == up	? (dir == down ? -1 : 1) : 0));
 		
 		if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.m_x, newXY.m_y))
 		{	
@@ -937,8 +973,8 @@ void HardcoreProtester::pathTowardsPlayer()
 
 		Direction dir = getDirection();
 
-		moveTo(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-				getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+		moveTo(	getX() + (dir == left || dir == right	?	(dir == left ? -1 : 1) : 0),
+				getY() + (dir == down || dir == up		?	(dir == down ? -1 : 1) : 0));
 
 		m_stepsInCurrDir = 0;
 
@@ -948,8 +984,8 @@ void HardcoreProtester::pathTowardsPlayer()
 	{
 		Direction dir = getDirection();
 
-		Point newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-							getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+		Point newXY = Point(getX() + (dir == left || dir == right	?	(dir == left ? -1 : 1) : 0),
+							getY() + (dir == down || dir == up		?	(dir == down ? -1 : 1) : 0));
 
 		string validDirs = getWorld()->getPathFinder()->getValidDirections(getBB().getXY());
 
@@ -1006,8 +1042,8 @@ void HardcoreProtester::pathTowardsPlayer()
 
 		dir = getDirection();
 
-		newXY = Point(getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0),
-						getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0));
+		newXY = Point(	getX() + (dir == left || dir == right	?	(dir == left ? -1 : 1) : 0),
+						getY() + (dir == down || dir == up		?	(dir == down ? -1 : 1) : 0));
 
 		if (validDirs.length() >= 1 && getWorld()->getIceManager()->checkIce(newXY.m_x, newXY.m_y))
 		{
@@ -1046,7 +1082,16 @@ HardcoreProtester::~HardcoreProtester()
 
 // Ice 
 
-Ice::Ice(int startX, int startY) : Actor(IID_ICE, startX, startY, right, SIZE_SMALL, 3, 1, false, false)
+Ice::Ice(	int startX, 
+			int startY	) : Actor(	IID_ICE, 
+									startX, 
+									startY, 
+									right, 
+									SIZE_SMALL, 
+									3, 
+									1, 
+									false, 
+									false	)
 {
 	setVisible(true);
 }
@@ -1063,9 +1108,18 @@ Ice::~Ice()
 
 // Boulder
 
-Boulder::Boulder(int startX, int startY) :	Actor(IID_BOULDER, startX, startY, down, SIZE_NORMAL, 1, 1, false, false),
-											m_isStable(true),
-											m_isFalling(false)
+Boulder::Boulder(	int startX, 
+					int startY) :	Actor(	IID_BOULDER, 
+											startX, 
+											startY,
+											down,
+											SIZE_NORMAL, 
+											1, 
+											1, 
+											false, 
+											false	),
+									m_isStable(true),
+									m_isFalling(false)
 {
 	setVisible(true);
 }
@@ -1126,20 +1180,37 @@ void Boulder::takeDamage(DamageSource src) { return; }
 
 Boulder::~Boulder()
 {
-	getWorld()->getIceManager()->clearIce(getX(), getY());
+
 }
 
 
 // Squirt
 
-Squirt::Squirt(int startX, int startY, Direction dir) : Actor(IID_WATER_SPURT, startX, startY, dir, SIZE_NORMAL, 1, 1, false, true),
-														m_movesLeft(4)
+Squirt::Squirt(	int startX, 
+				int startY, 
+				Direction dir) :	Actor(	IID_WATER_SPURT, 
+											startX, 
+											startY, 
+											dir, 
+											SIZE_NORMAL, 
+											1, 
+											1, 
+											false, 
+											true	),
+									m_movesLeft(4)
 {
 	setVisible(true);
+	firstRun = true;
 }
 
 void Squirt::doSomething()
 {
+	if (firstRun)
+	{
+		firstRun = false;
+		return;
+	}
+
 	StudentWorld* world = getWorld();
 	
 	if (m_movesLeft > 0)
@@ -1147,7 +1218,7 @@ void Squirt::doSomething()
 		Direction dir = getDirection();
 
 		int squirtX = getX() + (dir == left || dir == right ? (dir == left ? -1 : 1) : 0);
-		int squirtY = getY() + (dir == down || dir == up ? (dir == down ? -1 : 1) : 0);
+		int squirtY = getY() + (dir == down || dir == up	? (dir == down ? -1 : 1) : 0);
 
 		BoundingBox BB = BoundingBox(squirtX, squirtY);
 
@@ -1176,11 +1247,23 @@ Squirt::~Squirt()
 
 // Item
 
-Item::Item(int imageID, int startX, int startY, 
-		   Direction dir, double size, 
-		   unsigned int depth, States state) :	Actor(imageID, startX, startY, dir, size, depth, 1, false, true),
-												m_hasBeenPickedUp(false),
-												m_state(state)
+Item::Item(	int imageID,	
+			int startX, 
+			int startY, 
+			Direction dir, 
+			double size, 
+			unsigned int depth, 
+			States state	) :	Actor(	imageID, 
+										startX, 
+										startY, 
+										dir, 
+										size, 
+										depth, 
+										1, 
+										false, 
+										true	),
+								m_hasBeenPickedUp(false),
+								m_state(state)
 {
 
 }
@@ -1236,7 +1319,14 @@ int Item::getTempTicksLeft()
 
 // OilBarrel
 
-OilBarrel::OilBarrel(int x, int y) : Item(IID_BARREL, x, y, right, SIZE_NORMAL, 2, Item::States::Permanent)
+OilBarrel::OilBarrel(	int x, 
+						int y	) : Item(	IID_BARREL, 
+											x, 
+											y, 
+											right, 
+											SIZE_NORMAL,
+											2, 
+											Item::States::Permanent	)
 {
 	setVisible(false);
 	setTempLifetime();
@@ -1277,7 +1367,15 @@ void OilBarrel::ItemDoSomething()
 
 // Gold Nugget
 
-GoldNugget::GoldNugget(int x, int y, Item::States state) :	Item(IID_GOLD, x, y, right, SIZE_NORMAL, 2, state)
+GoldNugget::GoldNugget(	int x, 
+						int y, 
+						Item::States state) :	Item(	IID_GOLD, 
+														x, 
+														y, 
+														right,
+														SIZE_NORMAL, 
+														2, 
+														state	)
 {
 	setVisible(getState() == Permanent ? false : true);
 	setTempLifetime();
@@ -1339,7 +1437,13 @@ void GoldNugget::ItemDoSomething()
 
 // SonarKit
 
-SonarKit::SonarKit() : Item(IID_SONAR, 0, 60, right, SIZE_NORMAL, 2, Item::States::Temporary)
+SonarKit::SonarKit() : Item(	IID_SONAR, 
+								0, 
+								60, 
+								right, 
+								SIZE_NORMAL, 
+								2, 
+								Item::States::Temporary	)
 {
 	setVisible(true);
 
@@ -1373,7 +1477,14 @@ void SonarKit::ItemDoSomething()
 
 // WaterPool
 
-WaterPool::WaterPool(int x, int y) : Item(IID_WATER_POOL, x, y, right, SIZE_NORMAL, 2, Item::States::Temporary)
+WaterPool::WaterPool(	int x, 
+						int y	) : Item(	IID_WATER_POOL, 
+											x, 
+											y, 
+											right, 
+											SIZE_NORMAL, 
+											2, 
+											Item::States::Temporary	)
 {
 	setVisible(true);
 
@@ -1392,6 +1503,21 @@ void WaterPool::ItemDoSomething()
 	StudentWorld* world = getWorld();
 
 	Iceman* player = world->getPlayer();
+
+	Direction dir = getDirection();
+
+	if (getTicksAlive() % 4 == 0)
+	{
+		switch (getDirection())
+		{
+		case left:
+			setDirection(right);
+			break;
+		case right:
+			setDirection(left);
+			break;
+		}
+	}
 
 	if (getBB().intersects(player->getBB()))
 	{

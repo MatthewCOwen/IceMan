@@ -560,7 +560,8 @@ IceManager::~IceManager()
 
 // PathFinder
 
-PathFinder::PathFinder(StudentWorld* world) : m_world(world), m_needsUpdating(true)
+PathFinder::PathFinder(StudentWorld* world) :	m_world(world), 
+												m_needsUpdating(true)
 {
 	for (int y = 0; y < 64; y++)
 	{

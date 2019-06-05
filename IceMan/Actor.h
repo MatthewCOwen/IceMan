@@ -343,6 +343,8 @@ private:
 
 	int m_movesLeft;
 
+	bool firstRun;
+
 };
 
 
