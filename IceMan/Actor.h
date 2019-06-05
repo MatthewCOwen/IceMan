@@ -39,7 +39,8 @@ class Point
 {
 public:
 
-	Point(int x = -1, int y = -1);
+	Point(	int x = -1, 
+			int y = -1	);
 
 	Point(const Point& p);
 
@@ -74,11 +75,15 @@ class BoundingBox
 {
 public:
 	
-	BoundingBox(int x = 0, int y = 0);
+	BoundingBox(	int x = 0, 
+					int y = 0	);
 
-	BoundingBox(int x, int y, int size);
+	BoundingBox(	int x, 
+					int y, 
+					int size	);
 
-	void updateBB(int x, int y);
+	void updateBB(	int x, 
+					int y	);
 
 	Point* getBB();
 
@@ -105,9 +110,15 @@ public:
 
 	enum DamageSource {waterSpray, rockFall, protest};
 		
-	Actor(int imageID, int startX, int startY, Direction dir,
-		  double size, unsigned int depth, int health,
-		  bool isDamageable, bool isPassable);
+	Actor(	int imageID, 
+			int startX, 
+			int startY, 
+			Direction dir,
+			double size, 
+			unsigned int depth, 
+			int health,
+			bool isDamageable, 
+			bool isPassable	);
 
 	bool isFacing(Actor* other) const;
 
@@ -168,15 +179,15 @@ class Iceman : public Actor
 {
 public:
 		
-	Iceman(int imageID = IID_PLAYER,
-		   int startX = 30,
-		   int startY = 60,
-		   Direction dir = right,
-		   double size = 1.0,
-		   unsigned int depth = 0,
-		   int health = 10,
-		   bool isDamageable = true,
-		   bool isPassable = true);
+	Iceman(	int imageID = IID_PLAYER,
+			int startX = 30,
+			int startY = 60,
+			Direction dir = right,
+			double size = 1.0,
+			unsigned int depth = 0,
+			int health = 10,
+			bool isDamageable = true,
+			bool isPassable = true	);
 
 	void doSomething();
 	
@@ -215,7 +226,10 @@ public:
 
 	enum States { InOilField, LeaveOilField };
 
-	Protester(int imageID, int health, int x, int y);
+	Protester(	int imageID, 
+				int health, 
+				int x, 
+				int y	);
 
 	States getState() const;
 
@@ -256,7 +270,8 @@ class RegularProtester : public Protester
 {
 public:
 
-	RegularProtester(int x = 60, int y = 60);
+	RegularProtester(	int x = 60, 
+						int y = 60	);
 
 	virtual ~RegularProtester();
 
@@ -273,7 +288,8 @@ class HardcoreProtester : public Protester
 {
 public:
 
-	HardcoreProtester(int x = 60, int y = 60);
+	HardcoreProtester(	int x = 60, 
+						int y = 60	);
 
 	virtual ~HardcoreProtester();
 
@@ -297,7 +313,8 @@ class Ice : public Actor
 {
 public:
 
-	Ice(int startX, int startY);
+	Ice(	int startX, 
+			int startY	);
 
 	virtual void doSomething();
 	
@@ -310,7 +327,8 @@ class Boulder : public Actor
 {
 public:
 		
-	Boulder(int startX, int startY);
+	Boulder(	int startX, 
+				int startY	);
 		
 	virtual void doSomething();
 
@@ -331,7 +349,9 @@ class Squirt : public Actor
 {
 public:
 
-	Squirt(int startX, int startY, Direction dir);
+	Squirt(	int startX, 
+			int startY, 
+			Direction dir	);
 
 	virtual void takeDamage(DamageSource src);
 
@@ -356,9 +376,13 @@ public:
 
 	enum States {Permanent, Temporary};	
 		
-	Item(int imageID, int startX, int startY, 
-		 Direction dir, double size, 
-		 unsigned int depth, States state);
+	Item(	int imageID, 
+			int startX, 
+			int startY, 
+			Direction dir, 
+			double size, 
+			unsigned int depth,
+			States state	);
 
 	virtual ~Item();
 
@@ -392,7 +416,8 @@ class OilBarrel : public Item
 {
 public:
 
-	OilBarrel(int x, int y);
+	OilBarrel(	int x, 
+				int y	);
 
 	~OilBarrel();
 
@@ -406,7 +431,9 @@ class GoldNugget : public Item
 {
 public:
 
-	GoldNugget(int x, int y, States state);
+	GoldNugget(	int x, 
+				int y, 
+				States state	);
 
 	~GoldNugget();
 
@@ -434,7 +461,8 @@ class WaterPool : public Item
 {
 public:
 
-	WaterPool(int x, int y);
+	WaterPool(	int x, 
+				int y	);
 
 	~WaterPool();
 

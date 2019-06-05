@@ -38,7 +38,8 @@ public:
 
 	PathFinder* getPathFinder();
 
-	Actor* collisionWith(Actor * a, BoundingBox BB);
+	Actor* collisionWith(	Actor * a, 
+							BoundingBox BB	);
 
 	Iceman* getPlayer();
 
@@ -52,13 +53,19 @@ public:
 
 	void spawnGoodie();
 
-	bool squirtTargets(BoundingBox BB, Squirt* blackList);
+	bool squirtTargets(	BoundingBox BB, 
+						Squirt* blackList	);
 
-	void scan(double x, double y);
+	void scan(	double x, 
+				double y	);
 
-	int getDistSquared(double x1, double y1, double x2, double y2);
+	int getDistSquared(	double x1, 
+						double y1, 
+						double x2, 
+						double y2	);
 
-	int getDistSquared(Point p1, Point p2);
+	int getDistSquared(	Point p1, 
+						Point p2	);
 
 	~StudentWorld();
 
@@ -96,7 +103,8 @@ private:
 
 	static StudentWorld* world;
 
-	bool isValidSpawnLocation(int x, int y);
+	bool isValidSpawnLocation(	int x, 
+								int y	);
 };
 
 
@@ -108,13 +116,17 @@ public:
 
 	IceManager();
 		
-	Ice*& operator()(int x, int y);
+	Ice*& operator()(	int x, 
+						int y	);
 
-	bool checkIce(int x, int y);
+	bool checkIce(	int x, 
+					int y	);
 
-	bool clearIce(int x, int y);
+	bool clearIce(	int x, 
+					int y	);
 
-	void hideIce(int x, int y);	
+	void hideIce(	int x, 
+					int y	);	
 	~IceManager();
 
 private:
@@ -131,7 +143,8 @@ public:
 
 	PathFinder(StudentWorld* world);
 
-	const std::string getPathToExitFrom(int x, int y);
+	const std::string getPathToExitFrom(	int x, 
+											int y	);
 
 	bool hasUnobstructedPathToPlayer(Actor * a);
 
@@ -139,15 +152,18 @@ public:
 
 	void updateGrid();
 
-	bool isValidLocation(int x, int y);
+	bool isValidLocation(	int x, 
+							int y	);
 
 	const std::string getValidDirections(Point p);
 
-	const std::string getValidPerpDirs(Point p, GraphObject::Direction dir);
+	const std::string getValidPerpDirs(	Point p, 
+										GraphObject::Direction dir	);
 
-	GraphObject::Direction getAdjPointClosestToPlayer(Point& p, GraphObject::Direction cur);
+	GraphObject::Direction getAdjPointClosestToPlayer(	Point& p,
+														GraphObject::Direction cur	);
 
-	bool isIntersection(const std::string s);
+	bool isIntersection(const string& s);
 
 	bool m_needsUpdating;
 

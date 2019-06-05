@@ -1001,7 +1001,7 @@ GraphObject::Direction PathFinder::getAdjPointClosestToPlayer(	Point &p,
 	return retVal;
 }
 
-bool PathFinder::isIntersection(const string s)
+bool PathFinder::isIntersection(const string& s)
 {
 	return ((s.find('U') != string::npos || s.find('D') != string::npos) && 
 			(s.find('L') != string::npos || s.find('R') != string::npos));
